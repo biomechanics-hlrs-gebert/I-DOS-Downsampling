@@ -37,16 +37,7 @@ CONTAINS
    REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: origin   ! same
    INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3), OPTIONAL     :: dims     ! same
 
-   REAL     (KIND=rk)            , DIMENSION(3)               :: orgn
-   INTEGER  (KIND=INT64)                                      :: sze
-
    IF (atStart .EQV. .TRUE.) THEN
-
-      IF (PRESENT(sections)) THEN
-         orgn = (sections-1) * dims * spcng + origin
-      ELSE
-         orgn = origin
-      END IF
 
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='NEW')
 
@@ -56,9 +47,7 @@ CONTAINS
       WRITE(fh,'(A)')           "DATASET STRUCTURED_POINTS"
       WRITE(fh,'(A,3(I5))')     "DIMENSIONS", dims
       WRITE(fh,'(A,3(F11.6))')  "SPACING ", spcng
-      WRITE(fh,'(A,3(F11.6))')  "ORIGIN ", orgn
-      sze = PRODUCT(INT(dims, KIND=INT64))
-      WRITE(fh,'(A, I15)')      "POINT_DATA", sze
+      WRITE(fh,'(A,3(F11.6))')  "ORIGIN ", origin
       
       IF (TRIM(type) .EQ. 'uint2') WRITE(fh,'(A)') "SCALARS DICOMImage unsigned_short"    
       IF (TRIM(type) .EQ. 'int2')  WRITE(fh,'(A)') "SCALARS DICOMImage short"    
@@ -75,64 +64,26 @@ CONTAINS
    END IF
 
    CLOSE(UNIT=fh)
- END SUBROUTINE write_vtk_meta
-
- !---------------------------------------------------------------------------------------------------
- 
- SUBROUTINE write_raw (fh, type, filename, dims, array2, array4)
-! type = 'int2', 'int4'
-! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
-CHARACTER(LEN=*)                        , INTENT(IN)                         :: type
-CHARACTER(LEN=*)                        , INTENT(IN)                         :: filename
-INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: dims
-INTEGER  (KIND=INT16), DIMENSION (:,:,:)            , OPTIONAL               :: array2
-INTEGER  (KIND=INT32), DIMENSION (:,:,:)            , OPTIONAL               :: array4
-
-! Internal Variables
-INTEGER  (KIND=ik)                                                           :: fh
-
-IF (TRIM(type) .EQ. 'int2') THEN
-
-ELSE IF (TRIM(type) .EQ. 'int4') THEN
-
-END IF
-
-END SUBROUTINE write_raw
+ END SUBROUTINE write_meta
 
 !---------------------------------------------------------------------------------------------------
-!---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, &
-   sze_o, fov_o, bnds_o, rd_o, status_o)
+SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ)
 ! log_un exists means "print log"!
 
-INTEGER  (KIND=ik)                                                            :: fh
-CHARACTER(len=*)                                                , INTENT(IN)  :: filename
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(OUT) :: dims
-REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: origin
-REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: spcng
-CHARACTER(len=*)                                                , INTENT(OUT) :: typ
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: displacement
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: sze_o ! int32 mpi!
-REAL     (KIND=rk)    , DIMENSION(3)                  , OPTIONAL, INTENT(OUT) :: fov_o
-INTEGER  (KIND=ik)    , DIMENSION(3,2)                , OPTIONAL, INTENT(OUT) :: bnds_o
+INTEGER  (KIND=ik)                             :: fh
+CHARACTER(len=*)                 , INTENT(IN)  :: filename
+INTEGER  (KIND=ik), DIMENSION(3) , INTENT(OUT) :: dims
+REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: origin
+REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: spcng
+CHARACTER(len=*)                 , INTENT(OUT) :: typ
 
 !-- Initialize variables in case they're not used
-INTEGER  (KIND=INT64)                                                         :: sze
-REAL     (KIND=rk)    , DIMENSION(3)                                          :: fov
-INTEGER  (KIND=ik)    , DIMENSION(3,2)                                        :: bnds
 INTEGER  (KIND=ik)                                                            :: status=0, ii=0, hdr_lngth, lui=6, ntokens
 
 CHARACTER(len=mcl)                                                            :: line
 CHARACTER(len=mcl)                                                            :: tokens(100)
 CHARACTER(len=mcl)    , DIMENSION(3)                                          :: token
-
-!-- Check existence of optional variables
-IF (PRESENT(sze_o)   ) sze    = sze_o
-IF (PRESENT(fov_o)   ) fov    = fov_o
-IF (PRESENT(bnds_o)  ) bnds   = bnds_o
-IF (PRESENT(status_o)) status = status_o
-IF (PRESENT(rd_o)    ) lui=rd_o
 
 OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 
@@ -147,9 +98,6 @@ DO ii=1,10
          READ(tokens(2),'(I10)')  dims(1)
          READ(tokens(3),'(I10)')  dims(2)
          READ(tokens(4),'(I10)')  dims(3)
-         bnds(:,1) = 1
-         bnds(:,2) = dims(:)
-         sze       = PRODUCT(INT(dims, KIND=INT64))
       ELSEIF (tokens(1) .EQ. "SPACING") THEN
          READ(tokens(2),'(F15.6)') spcng(1)  
          READ(tokens(3),'(F15.6)') spcng(2)  
@@ -157,7 +105,6 @@ DO ii=1,10
       ELSEIF (tokens(1) .EQ. "DATASET") THEN
          IF (tokens(2) /= "STRUCTURED_POINTS") THEN
             WRITE(lui,'(3A)') "The input file ",filename," does not contain STRUCTURED_POINTS!"
-            status = 3_ik
          ENDIF
       ELSEIF (tokens(1) .EQ. "ORIGIN") THEN
          READ(tokens(2),'(F15.6)') origin(1)  
@@ -175,7 +122,6 @@ DO ii=1,10
          CASE('unsigned_short'); typ = 'uint2'
          CASE DEFAULT
             WRITE(*,'(A)') "No valid type given in *.vtk File." 
-            status = 1_ik   
          END SELECT
       END IF
    END IF !ntokens <0
@@ -183,58 +129,31 @@ END DO
 
 CLOSE(fh)
 
-
-!-- Check existence of optional variables
-IF (PRESENT(sze_o)   ) sze_o    = sze
-IF (PRESENT(fov_o)   ) fov_o    = fov
-IF (PRESENT(bnds_o)  ) bnds_o   = bnds
-IF (PRESENT(status_o)) status_o = status
-IF (PRESENT(displacement)) displacement = hdr_lngth
-
 END SUBROUTINE read_vtk_meta
 
 !---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_raw(filename, type, hdr_lngth, dims, subarray_dims, subarray_origin, subarray, displacement, log_un, status_o)
-! MPI Parallel read always reads subarrays.
-! log_un exists means "print log"!
-! type = 'real4', 'real8, 'int2', 'int4'
+SUBROUTINE read_raw(filename, type, hdr_lngth, dims, rryreal4, rryreal8, rryint2, rryint4)
 
-CHARACTER(LEN=*)                                                , INTENT(IN)     :: filename
-CHARACTER(LEN=*)                                                , INTENT(IN)     :: type
-INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: hdr_lngth
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: dims
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_dims
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_origin
-INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE          , INTENT(OUT)    :: subarray
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: displacement
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: log_un
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT)    :: status_o
+CHARACTER(LEN=*)                                                , INTENT(IN)  :: filename
+CHARACTER(LEN=*)                                                , INTENT(IN)  :: type
+INTEGER  (KIND=ik)                                              , INTENT(IN)  :: hdr_lngth
+INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)  :: dims
+REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryreal4 
+REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryreal8 
+INTEGER  (KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryint2
+INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryint4
 
 ! Internal Variables
-INTEGER  (KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_two
-INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_four
-REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_eight
-REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_four
 INTEGER  (KIND=ik)                                                               :: status=0, rd_o
 INTEGER  (KIND=ik)                                                               :: fh, ii, jj, kk
 
-IF (PRESENT(displacement)) hdr_lngth = displacement
-IF (PRESENT(log_un))            rd_o = log_un
+! IF (TRIM(type) .EQ. 'real4') THEN
+! ELSE IF (TRIM(type) .EQ. 'real8') THEN
+! ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
+! ELSE IF (TRIM(type) .EQ. 'int4') THEN
+! END IF
 
-
-IF (TRIM(type) .EQ. 'real4') THEN
-
-ELSE IF (TRIM(type) .EQ. 'real8') THEN
-
-ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
-
-ELSE IF (TRIM(type) .EQ. 'int4') THEN
-
-ELSE 
-   status = 1_ik
-END IF
-
-END SUBROUTINE read_raw_mpi
+END SUBROUTINE read_raw
 
 END MODULE file_routines_mpi

@@ -1,23 +1,19 @@
 # --------------------------------------------------------------------------------------------------
 # Makefile to build the Image Processing program
 #
-# Author:    Johannes Gebert «gebert@hlrs.de»
+# Author:    Johannes Gebert »gebert@hlrs.de«
 # Date:      13.09.2021
 # Last edit: 13.09.2021
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # --------------------------------------------------------------------------------------------------
-# Set Architecture to compile for
-# hawk    - HPE Apollo
-# vulcan  - NEC Cluster
-# julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU
 trgt_vrsn = 'V1.0.0'
 # --------------------------------------------------------------------------------------------------
 # Directories
 mod_dir   = $(CURDIR)/mod/
 obj_dir   = $(CURDIR)/obj/
 lib_dir   = $(CURDIR)/lib/
-bin_dir   = $(CURDIR)/
+bin_dir   = $(CURDIR)/bin/
 f-src_dir = $(CURDIR)/f-src/
 # --------------------------------------------------------------------------------------------------
 # File extensions and suffixes
