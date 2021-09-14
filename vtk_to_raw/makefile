@@ -13,7 +13,7 @@ trgt_vrsn = 'V1.0.0'
 mod_dir   = $(CURDIR)/mod/
 obj_dir   = $(CURDIR)/obj/
 lib_dir   = $(CURDIR)/lib/
-bin_dir   = $(CURDIR)/bin/
+bin_dir   = $(CURDIR)/datasets/
 f-src_dir = $(CURDIR)/f-src/
 # --------------------------------------------------------------------------------------------------
 # File extensions and suffixes
@@ -33,6 +33,7 @@ export compiler
 # Compile flags GNU Compiler
 c_flags_f90 = -J$(mod_dir) -I$(mod_dir) \
 	             -g						   \
+				 -o                        \
 	             -O3					   \
 	             -fbacktrace               \
                  -fbounds-check            \
@@ -58,19 +59,19 @@ all: $(MAIN_bin)
 # -------------------------------------------------------------------------------------------------
 # Standards Module
 $(obj_dir)mod_standards$(obj_ext):$(f-src_dir)mod_standards$(f90_ext)
-	@echo "---------------------------------------"
+	@echo "------------------------------------------------"
 	@echo "-- Compiles: " $< "--------------------"
 	$(compiler) $(c_flags_f90) -c $< -o $@
 # --------------------------------------------------------------------------------------------------
 # Files routines module
 $(obj_dir)mod_file_routines_mpi$(obj_ext):$(mod_dir)standards$(mod_ext) $(f-src_dir)mod_file_routines_mpi$(f90_ext)
-	@echo "---------------------------------------"
+	@echo "------------------------------------------------"
 	@echo "-- Compiles: " $(f-src_dir)mod_file_routines_mpi$(f90_ext) "--------------------"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_file_routines_mpi$(f90_ext) -o $@
 #  -------------------------------------------------------------------------------------------------
 # External source to parse input
 $(obj_dir)mod_stringmod$(obj_ext):$(mod_dir)standards$(mod_ext)	$(f-src_dir)stringmod$(f90_ext)
-	@echo "---------------------------------------"
+	@echo "------------------------------------------------"
 	@echo "-- Compiles: " $(f-src_dir)stringmod$(f90_ext) "--------------------"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)stringmod$(f90_ext) -o $@
 # --------------------------------------------------------------------------------------------------
@@ -79,21 +80,22 @@ $(obj_dir)vtk_to_raw$(obj_ext):$(mod_dir)standards$(mod_ext)			\
 						 $(mod_dir)file_routines_mpi$(mod_ext)  \
  			             $(mod_dir)strings$(mod_ext)			\
 						 $(f-src_dir)vtk_to_raw$(f90_ext)
-	@echo "---------------------------------------"
+	@echo "------------------------------------------------"
 	@echo "-- Compiles: " $(f-src_dir)vtk_to_raw$(f90_ext) "--------------------"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)vtk_to_raw$(f90_ext) -o $@
 # ---------------------------------------------------------------------------------------------------
 # Linking MAIN
 $(MAIN_bin):$(f-objects)
-	@echo "---------------------------------------"
+	@echo "------------------------------------------------"
 	@echo "-- Linking MAIN binary"
 	$(compiler) $(f-objects) -o $(MAIN_bin)
 
 # ---------------------------------------------------------------------------------------------------
 # Linking MAIN
-	@echo "---------------------------------------"
+	@echo "------------------------------------------------"
 	@echo "-- Successfully build all."
-	@echo "---------------------------------------"
+	@echo "-- Binary is located at the datasets directory."	
+	@echo "------------------------------------------------"
 
 
 clean:

@@ -1,16 +1,10 @@
-!---------------------------------------------------------------------------------------------------
-! mod_file_routines_mpi.f90
-!
-! author Johannes Gebert
-! date 04.01.2021
-! date 05.08.2021
-
-! subroutine mpi_err(ierr, mssg)
-! SUBROUTINE check_file_exist(filename, must_exist, mpi)
-! SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, origin, dims, sections)
-! SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
-! SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
-! SUBROUTINE write_matrix(matrix, title, u, frmwrk)
+!>-------------------------------------------------------------------
+!> mod_file_routines_mpi.f90
+!>
+!> Author:  Johannes Gebert - HLRS - NUM - »gebert@hlrs.de«
+!> Date:    12.09.2021
+!> LastMod: 14.09.2021
+!>-------------------------------------------------------------------
 
 MODULE file_routines_mpi
 
@@ -23,7 +17,7 @@ IMPLICIT NONE
 CONTAINS
 
  !---------------------------------------------------------------------------------------------------
- SUBROUTINE write_meta (fh, filename, type, atStart, spcng, origin, dims)
+ SUBROUTINE write_meta_general (fh, filename, type, atStart, spcng, origin, dims)
 
    ! It's HIGHLY recommended to check the existence of the output file prior to CALLing this
    ! Subroutine! Otherwise the program will crash. It's not double-checkd here, because this
@@ -64,22 +58,23 @@ CONTAINS
    END IF
 
    CLOSE(UNIT=fh)
- END SUBROUTINE write_meta
+ END SUBROUTINE write_meta_general
 
 !---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ)
+SUBROUTINE read_vtk_meta(fh, filename, hdr_lngth, dims, origin, spcng, typ)
 ! log_un exists means "print log"!
 
-INTEGER  (KIND=ik)                             :: fh
+INTEGER  (KIND=ik)               , INTENT(IN)  :: fh
 CHARACTER(len=*)                 , INTENT(IN)  :: filename
+INTEGER  (KIND=ik)               , INTENT(OUT) :: hdr_lngth
 INTEGER  (KIND=ik), DIMENSION(3) , INTENT(OUT) :: dims
 REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: origin
 REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: spcng
 CHARACTER(len=*)                 , INTENT(OUT) :: typ
 
 !-- Initialize variables in case they're not used
-INTEGER  (KIND=ik)                                                            :: status=0, ii=0, hdr_lngth, lui=6, ntokens
+INTEGER  (KIND=ik)                                                            :: status=0, ii=0, lui=6, ntokens
 
 CHARACTER(len=mcl)                                                            :: line
 CHARACTER(len=mcl)                                                            :: tokens(100)
@@ -115,13 +110,12 @@ DO ii=1,10
          token(3) = tokens(3)
 
          SELECT CASE( TRIM( token(3) ) )
-         CASE('float');          typ = 'real4'
-         CASE('double');         typ = 'real8'
-         CASE('int');            typ = 'int4'
-         CASE('short');          typ = 'int2'
-         CASE('unsigned_short'); typ = 'uint2'
-         CASE DEFAULT
-            WRITE(*,'(A)') "No valid type given in *.vtk File." 
+            CASE('float')         ; typ = 'rk4'
+            CASE('double')        ; typ = 'rk8'
+            CASE('int')           ; typ = 'ik4'
+            CASE('short')         ; typ = 'ik2'
+            CASE('unsigned_short'); typ = 'uik2'
+            CASE DEFAULT          ; WRITE(*,'(A)') "No valid type given in *.vtk File." 
          END SELECT
       END IF
    END IF !ntokens <0
@@ -130,30 +124,5 @@ END DO
 CLOSE(fh)
 
 END SUBROUTINE read_vtk_meta
-
-!---------------------------------------------------------------------------------------------------
-
-SUBROUTINE read_raw(filename, type, hdr_lngth, dims, rryreal4, rryreal8, rryint2, rryint4)
-
-CHARACTER(LEN=*)                                                , INTENT(IN)  :: filename
-CHARACTER(LEN=*)                                                , INTENT(IN)  :: type
-INTEGER  (KIND=ik)                                              , INTENT(IN)  :: hdr_lngth
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)  :: dims
-REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryreal4 
-REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryreal8 
-INTEGER  (KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryint2
-INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE, OPTIONAL, INTENT(OUT) :: rryint4
-
-! Internal Variables
-INTEGER  (KIND=ik)                                                               :: status=0, rd_o
-INTEGER  (KIND=ik)                                                               :: fh, ii, jj, kk
-
-! IF (TRIM(type) .EQ. 'real4') THEN
-! ELSE IF (TRIM(type) .EQ. 'real8') THEN
-! ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
-! ELSE IF (TRIM(type) .EQ. 'int4') THEN
-! END IF
-
-END SUBROUTINE read_raw
 
 END MODULE file_routines_mpi

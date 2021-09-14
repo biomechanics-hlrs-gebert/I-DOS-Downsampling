@@ -1,4 +1,9 @@
 # HLRS | NUM | Convert VTK to Raw
+![Architecture](https://img.shields.io/badge/Architecture-x86-green)
+![OS](https://img.shields.io/badge/Linux-64Bit-green)
+![version](https://img.shields.io/badge/version-1.0.0-green)
+![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
+
 Simply get a \*.raw and a \*.meta file out of a vtk file and rename all into a basename nomenclature.
 
 ## Usage
