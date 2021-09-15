@@ -34,7 +34,7 @@ REAL     (KIND = REAL32)       , DIMENSION(:,:,:), ALLOCATABLE  :: rryrk4
 REAL     (KIND = REAL64)       , DIMENSION(:,:,:), ALLOCATABLE  :: rryrk8
 INTEGER  (KIND = INT16)        , DIMENSION(:,:,:), ALLOCATABLE  :: rryik2
 INTEGER  (KIND = INT32)        , DIMENSION(:,:,:), ALLOCATABLE  :: rryik4
-
+REAL     (KIND = rk)                                            :: start, end
 
 ! Read Input file
 CHARACTER(len=mcl)                                              :: line
@@ -43,9 +43,10 @@ CHARACTER(len=mcl)                                              :: tokens(100)
 CHARACTER(len=mcl)                                              :: tkns(100)
 INTEGER  (KIND = ik)                                            :: wr_vtk_hdr
 
+CALL CPU_TIME(start)
+
 CALL GET_COMMAND_ARGUMENT(1, vtk)
 CALL GET_COMMAND_ARGUMENT(2, new_basename)       
-
 
 ! Read VTK file header
 CALL read_vtk_meta (fh=dh_di      , &
@@ -84,12 +85,14 @@ END SELECT
 
 CLOSE(UNIT=fh_ro)
 
-WRITE(*, '(A )') "------------------------------------------------"
+CALL CPU_TIME(end)
+
+WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
 WRITE(*, '(2A)') "Input  *.vtk:  ", TRIM(vtk)
 WRITE(*, '(2A)') "Output *.raw:  ", TRIM(filename_raw)
-WRITE(*, '(2A)') "Output *.meta: ", TRIM(filename_meta)
+! WRITE(*, '(2A)') "Output *.meta: ", TRIM(filename_meta)
 WRITE(*, '(A )') 
-WRITE(*, '(A )') "Program finished succesfully."
-WRITE(*, '(A )') "------------------------------------------------"
+WRITE(*, '(A, F15.1, A)') "Program finished succesfully in ",end-start," seconds."
+WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
 
 END PROGRAM vtk_to_raw
