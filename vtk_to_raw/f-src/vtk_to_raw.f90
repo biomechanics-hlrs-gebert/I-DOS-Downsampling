@@ -48,6 +48,18 @@ CALL CPU_TIME(start)
 CALL GET_COMMAND_ARGUMENT(1, vtk)
 CALL GET_COMMAND_ARGUMENT(2, new_basename)       
 
+filename_raw  = TRIM(new_basename)//'.raw'
+filename_meta = TRIM(new_basename)//'.meta'
+
+WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
+WRITE(*, '(A )') "Vtk to raw converter started. It may take up to several minutes to copy a file of <100GB"
+WRITE(*, '(A )') 
+WRITE(*, '(2A)') "Input  *.vtk:  ", TRIM(vtk)
+WRITE(*, '(2A)') "Output *.raw:  ", TRIM(filename_raw)
+! WRITE(*, '(2A)') "Output *.meta: ", TRIM(filename_meta)
+WRITE(*, '(A )') 
+
+
 ! Read VTK file header
 CALL read_vtk_meta (fh=dh_di      , &
                     filename=vtk  , &
@@ -71,8 +83,7 @@ CLOSE(UNIT=fh_ro)
 
 ! CALL write_meta_general ()
 
-filename_raw  = TRIM(new_basename)//'.raw'
-filename_meta = TRIM(new_basename)//'.meta'
+
 
 OPEN (UNIT=fh_ro, FILE=TRIM(filename_raw), ACCESS="stream", FORM="unformatted", STATUS="new")
 
@@ -87,11 +98,6 @@ CLOSE(UNIT=fh_ro)
 
 CALL CPU_TIME(end)
 
-WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
-WRITE(*, '(2A)') "Input  *.vtk:  ", TRIM(vtk)
-WRITE(*, '(2A)') "Output *.raw:  ", TRIM(filename_raw)
-! WRITE(*, '(2A)') "Output *.meta: ", TRIM(filename_meta)
-WRITE(*, '(A )') 
 WRITE(*, '(A, F15.1, A)') "Program finished succesfully in ",end-start," seconds."
 WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
 
