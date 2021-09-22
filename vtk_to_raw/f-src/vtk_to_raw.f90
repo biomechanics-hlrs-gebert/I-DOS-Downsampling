@@ -4,7 +4,7 @@ PROGRAM vtk_to_raw
 !>
 !> Author:  Johannes Gebert - HLRS - NUM - »gebert@hlrs.de«
 !> Date:    12.09.2021
-!> LastMod: 14.09.2021
+!> LastMod: 22.09.2021
 !>-------------------------------------------------------------------
 
 USE ISO_FORTRAN_ENV

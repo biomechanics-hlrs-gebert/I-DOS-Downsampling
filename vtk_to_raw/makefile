@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------------------------------
-# Makefile to build the Image Processing program
+# Makefile to build the vtk to raw converter
 #
 # Author:    Johannes Gebert »gebert@hlrs.de«
 # Date:      13.09.2021
