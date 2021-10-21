@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Datasets
+*_x86_64
+*.vtk
+*.raw
