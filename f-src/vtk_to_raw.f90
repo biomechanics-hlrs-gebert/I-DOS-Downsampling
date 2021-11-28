@@ -36,28 +36,28 @@ INTEGER  (KIND = INT16)        , DIMENSION(:,:,:), ALLOCATABLE  :: rryik2
 INTEGER  (KIND = INT32)        , DIMENSION(:,:,:), ALLOCATABLE  :: rryik4
 REAL     (KIND = rk)                                            :: start, end
 
-! Read Input file
-CHARACTER(len=mcl)                                              :: line
-INTEGER  (KIND=ik)                                              :: io_status, ntokens
-CHARACTER(len=mcl)                                              :: tokens(100)
-CHARACTER(len=mcl)                                              :: tkns(100)
-INTEGER  (KIND = ik)                                            :: wr_vtk_hdr
-
 CALL CPU_TIME(start)
 
 CALL GET_COMMAND_ARGUMENT(1, vtk)
 CALL GET_COMMAND_ARGUMENT(2, new_basename)       
 
+WRITE(*, '(A)')
+WRITE(*, '(A)') "------------------------------------------------------------------------------------------------"
+WRITE(*, '(A)') "Vtk to raw converter started. It may take up to several minutes to copy a file of <100GB"
+
+IF (new_basename == '') THEN
+    WRITE(*, '(A)') "You may need to provide a new basename via cmd_arg 2. &
+        &Raw file get written as a hidden one..."
+END IF
+
 filename_raw  = TRIM(new_basename)//'.raw'
 filename_meta = TRIM(new_basename)//'.meta'
 
-WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
-WRITE(*, '(A )') "Vtk to raw converter started. It may take up to several minutes to copy a file of <100GB"
-WRITE(*, '(A )') 
+WRITE(*, '(A)') 
 WRITE(*, '(2A)') "Input  *.vtk:  ", TRIM(vtk)
 WRITE(*, '(2A)') "Output *.raw:  ", TRIM(filename_raw)
 ! WRITE(*, '(2A)') "Output *.meta: ", TRIM(filename_meta)
-WRITE(*, '(A )') 
+WRITE(*, '(A)') 
 
 
 ! Read VTK file header

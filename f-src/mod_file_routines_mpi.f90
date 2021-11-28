@@ -74,11 +74,11 @@ REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: spcng
 CHARACTER(len=*)                 , INTENT(OUT) :: typ
 
 !-- Initialize variables in case they're not used
-INTEGER  (KIND=ik)                                                            :: status=0, ii=0, lui=6, ntokens
+INTEGER  (KIND=ik) :: ii=0, lui=6, ntokens
 
-CHARACTER(len=mcl)                                                            :: line
-CHARACTER(len=mcl)                                                            :: tokens(100)
-CHARACTER(len=mcl)    , DIMENSION(3)                                          :: token
+CHARACTER(len=mcl) :: line
+CHARACTER(len=mcl) :: tokens(100)
+CHARACTER(len=mcl), DIMENSION(3) :: token
 
 OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 
