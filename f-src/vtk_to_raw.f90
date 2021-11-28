@@ -70,7 +70,7 @@ CALL read_vtk_meta (fh=dh_di      , &
                     typ=typ)
 
 ! Read binary data
-OPEN(UNIT=dh_di, FILE=TRIM(vtk), ACCESS="stream", FORM="unformatted", STATUS="old")
+OPEN(UNIT=dh_di, FILE=TRIM(vtk), ACCESS="stream", FORM="unformatted", STATUS="old", CONVERT='SWAP')
 
 SELECT CASE(TRIM(typ))
     CASE ('rk4'); ALLOCATE(rryrk4(dims(1),dims(2),dims(3))); READ(UNIT=dh_di, POS=hdr) rryrk4(:,:,:)
@@ -99,6 +99,7 @@ CLOSE(UNIT=fh_ro)
 CALL CPU_TIME(end)
 
 WRITE(*, '(A, F15.1, A)') "Program finished succesfully in ",end-start," seconds."
+WRITE(*, '(A)') "CONVERTED TO LITTLE ENDIAN!! KEEP IN MIND AND CHANGE IN SOURCE IF NECESSARY."
 WRITE(*, '(A )') "------------------------------------------------------------------------------------------------"
 
 END PROGRAM vtk_to_raw
