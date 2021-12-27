@@ -122,7 +122,7 @@ lockname=TRIM(in%path)//'.'//TRIM(in%bsnm)//lock_suf
 
 INQUIRE (FILE = TRIM(lockname), EXIST = exist)
 
-IF((restart .EQ. 'N') .AND. (exist)) THEN
+IF((restart == 'N') .AND. (exist)) THEN
    mssg='The .*.lock file is set and a restart prohibited by default or the user.'
 
    INQUIRE (FILE = out%full, EXIST = exist)
@@ -138,12 +138,12 @@ END IF
 !------------------------------------------------------------------------------
 ! Create a new lock file.
 !------------------------------------------------------------------------------
-IF(((restart .EQ. 'Y') .AND. (.NOT. exist)) .OR. ((restart .EQ. 'N') .AND. (.NOT. exist))) THEN
+IF(((restart == 'Y') .AND. (.NOT. exist)) .OR. ((restart == 'N') .AND. (.NOT. exist))) THEN
    CALL execute_command_line ('touch '//TRIM(lockname), CMDSTAT=ios)
    CALL print_err_stop(std_out, 'The .*.lock file could not be set.', err=ios)
 END IF
 
-IF((restart .EQ. 'Y') .AND. (exist)) CONTINUE
+IF((restart == 'Y') .AND. (exist)) CONTINUE
 
 END SUBROUTINE meta_handle_lock_file
 
@@ -195,7 +195,8 @@ IF (.NOT. exist) CALL print_err_stop(std_out, "The file "//TRIM(in%full)//" does
 
 CALL parse( str=in%full, delims=".", args=tokens, nargs=ntokens)
 
-IF ( '.'//TRIM(tokens(ntokens)) .EQ. meta_suf) THEN
+IF ( '.'//TRIM(tokens(ntokens)) == meta_suf) THEN
+
    !------------------------------------------------------------------------------
    ! Parse all basename and path details.
    !------------------------------------------------------------------------------
@@ -207,6 +208,11 @@ IF ( '.'//TRIM(tokens(ntokens)) .EQ. meta_suf) THEN
    in%bsnm = TRIM(tokens(ntokens))
 
    CALL parse( str=TRIM(in%bsnm), delims="_", args=tokens, nargs=ntokens)
+
+   IF (ntokens /= 5) THEN
+      mssg = "Invalid basename given: "//TRIM(in%p_n_bsnm)
+      CALL print_err_stop(std_out, mssg, 1)
+   END IF
 
    in%dataset = TRIM(tokens(1))
    in%type    = TRIM(tokens(2))
