@@ -1,10 +1,12 @@
 !------------------------------------------------------------------------------
-! MODULE: file_routines_mpi
+! MODULE: raw_binary
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief:
-!> Module for reading/writing files parallely.
+!> Module for reading/writing raw binary files parallely.
+!> PureDat provides an extended funcitonality and calls a binary blob a
+!> stream file (for example .int4.st).
 !
 !> @description
 !> There's one routine for reading raw blobs for each datatype. 
@@ -16,7 +18,7 @@
 !> MPI_FILE_READ_ALL routine. Since the preparation is the biggest part, the 
 !> calls won't be shorter significantly.
 !------------------------------------------------------------------------------
-MODULE file_routines_mpi
+MODULE raw_binary
 
 USE ISO_FORTRAN_ENV
 USE global_std
@@ -29,13 +31,358 @@ Interface mpi_read_raw
    Module Procedure mpi_read_raw_rk8
    Module Procedure mpi_read_raw_ik4
    Module Procedure mpi_read_raw_ik2
-   Module Procedure mpi_read_raw_uik2
 End Interface mpi_read_raw
 
 Interface mpi_write_raw
    Module Procedure mpi_write_raw_ik4
    Module Procedure mpi_write_raw_ik2
 End Interface mpi_write_raw
+
+CONTAINS
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_read_raw_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Read the raw int2 data of a binary blob
+!
+!> @param[in] filename File name
+!> @param[in] disp Length of the header (bytes)
+!> @param[in] dims Amount of voxels per direction
+!> @param[in] subarray_dims Amount of voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the data set
+!> @param[in] subarray int4 data
+!> @param[in] bigendian true or false (little endian)
+!------------------------------------------------------------------------------  
+SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+
+CHARACTER(LEN=*)             , INTENT(IN) :: filename
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
+INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
+INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+INTEGER(KIND=ik) :: ierr, type_subarray, fh
+CHARACTER(LEN=scl) :: datarep
+
+datarep = 'EXTERNAL32'
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray,ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
+
+ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+
+CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_read_raw_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_read_raw_ik4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Read the raw int4 data of a binary blob
+!
+!> @param[in] filename File name
+!> @param[in] disp Length of the header (bytes)
+!> @param[in] dims Amount of voxels per direction
+!> @param[in] subarray_dims Amount of voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the data set
+!> @param[in] subarray data
+!------------------------------------------------------------------------------  
+SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+
+CHARACTER(LEN=*)             , INTENT(IN) :: filename
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
+INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
+INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+INTEGER(KIND=ik) :: ierr, type_subarray, fh ! my_rank, size_mpi, 
+CHARACTER(LEN=scl) :: datarep
+
+datarep = 'EXTERNAL32'
+
+! ! Required to open files
+! CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+! CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
+
+! CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
+! CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray,ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
+
+ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+
+CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_read_raw_ik4
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: uik2_to_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Convert unsigned int2 to int 2 data.
+!
+!> @description
+!> Fortran does not know this shit. Therefore a workaround...
+!
+!> @param[in] subarray int data
+!------------------------------------------------------------------------------  
+SUBROUTINE uik2_to_ik2(subarray)
+
+INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(OUT) :: subarray
+INTEGER(KIND=ik) :: ii, jj, kk
+
+! Not so pretty workaround
+DO kk=1, SIZE(subarray,3)
+DO jj=1, SIZE(subarray,2)
+DO ii=1, SIZE(subarray,1)
+   IF(subarray(ii,jj,kk)<=0) subarray(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
+END DO
+END DO
+END DO
+
+subarray = subarray - 32768_ik
+
+END SUBROUTINE uik2_to_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_read_raw_rk4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Read the raw real 4 (single precision) data of a binary blob
+!
+!> @param[in] filename File name
+!> @param[in] disp Length of the header (bytes)
+!> @param[in] dims Amount of voxels per direction
+!> @param[in] subarray_dims Amount of voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the data set
+!> @param[in] subarray data
+!------------------------------------------------------------------------------  
+SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+
+CHARACTER(LEN=*)             , INTENT(IN) :: filename
+! MPI_OFFSET_KIND needs ik=8 in this case.
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
+INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
+REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+INTEGER(KIND=ik) :: ierr, type_subarray, fh
+CHARACTER(LEN=scl) :: datarep
+
+datarep = 'EXTERNAL32'
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_REAL, type_subarray,ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW(fh, disp, MPI_REAL, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
+
+ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+
+CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_read_raw_rk4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_read_raw_rk8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Read the raw real 8 (double precision) data of a binary blob
+!
+!> @param[in] fh File handle
+!> @param[in] filename File name
+!> @param[in] disp Length of the header (bytes)
+!> @param[in] dims Amount of voxels per direction
+!> @param[in] subarray_dims Amount of voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the data set
+!> @param[in] subarray data
+!------------------------------------------------------------------------------  
+SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+
+CHARACTER(LEN=*)             , INTENT(IN) :: filename
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
+INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
+REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+
+INTEGER(KIND=ik) :: ierr, type_subarray, fh
+CHARACTER(LEN=scl) :: datarep
+
+datarep = 'EXTERNAL32'
+
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, type_subarray,ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW(fh, disp, MPI_DOUBLE_PRECISION, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
+
+ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+
+CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_read_raw_rk8
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_write_raw_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Write the raw data of a vtk file
+!
+!> @description
+!
+!> @param[in] fh File handle
+!> @param[in] disp Length of the header (bytes) - position to write to
+!> @param[in] filename File name
+!> @param[in] dims Voxels per direction
+!> @param[in] subarray_dims Voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the subarray
+!> @param[in] subarray Scalar field / Image data
+!------------------------------------------------------------------------------  
+ SUBROUTINE mpi_write_raw_ik2 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
+! type = 'int2', 'int4'
+! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
+
+CHARACTER(LEN=*)             , INTENT(IN) :: filename
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
+INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
+INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+INTEGER  (KIND=ik) :: ierr, type_subarray, fh
+CHARACTER(LEN=scl) :: datarep = 'INTERNAL'
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray, ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW( fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
+
+CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_write_raw_ik2
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_write_raw_ik4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Write the raw data of a vtk file
+!
+!> @description
+!
+!> @param[in] disp Length of the header (bytes) - position to write to
+!> @param[in] filename File name
+!> @param[in] dims Voxels per direction
+!> @param[in] subarray_dims Voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the subarray
+!> @param[in] subarray Scalar field / Image data
+!------------------------------------------------------------------------------  
+ SUBROUTINE mpi_write_raw_ik4 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
+! type = 'int2', 'int4'
+! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
+
+CHARACTER(LEN=*)             , INTENT(IN) :: filename
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
+INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
+INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+INTEGER  (KIND=ik) :: ierr, type_subarray, fh
+CHARACTER(LEN=scl) :: datarep = 'INTERNAL'
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray, ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW( fh, disp, MPI_INTEGER, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
+
+CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_write_raw_ik4
+END MODULE raw_binary
+
+
+
+!------------------------------------------------------------------------------
+! MODULE: vtk_meta_data
+!------------------------------------------------------------------------------
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief:
+!> Module for reading/writing vtk-structured-point files
+!------------------------------------------------------------------------------
+MODULE vtk_meta_data
+
+USE ISO_FORTRAN_ENV
+USE global_std
+USE messages_errors
+
+IMPLICIT NONE
 
 CONTAINS
 
@@ -66,7 +413,7 @@ INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3) :: dims
 CHARACTER(LEN=scl) :: datatype=''
 LOGICAL :: exist
 
-INQUIRE(UNIT=fh, exists=exist)
+INQUIRE(UNIT=fh, exist=exist)
 
 IF(.NOT. exist) THEN
    OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='OLD', POSITION='APPEND')
@@ -84,16 +431,16 @@ END SELECT
 
 OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='NEW')
 
-WRITE(fh,'(A)')           "# vtk DataFile Version 4.2" ! Compatibility issue
-WRITE(fh,'(A)')           "vtk output"
-WRITE(fh,'(A)')           "BINARY"
-WRITE(fh,'(A)')           "DATASET STRUCTURED_POINTS"
-WRITE(fh,'(A,3(I5))')     "DIMENSIONS", dims
-WRITE(fh,'(A,3(F11.6))')  "SPACING ", spcng
-WRITE(fh,'(A,3(F11.6))')  "ORIGIN ", origin
-WRITE(fh,'(A)') "SCALARS DICOMImage "//TRIM(ADJUSTL(datatype))
-WRITE(fh,'(A)')            "LOOKUP_TABLE default"
-WRITE(fh,'(A)')          ''
+WRITE(fh,'(A)')          "# vtk DataFile Version 4.2" ! Compatibility issue
+WRITE(fh,'(A)')          "vtk output"
+WRITE(fh,'(A)')          "BINARY"
+WRITE(fh,'(A)')          "DATASET STRUCTURED_POINTS"
+WRITE(fh,'(A,3(I5))')    "DIMENSIONS", dims
+WRITE(fh,'(A,3(F11.6))') "SPACING ", spcng
+WRITE(fh,'(A,3(F11.6))') "ORIGIN ", origin
+WRITE(fh,'(A)')          "SCALARS DICOMImage "//TRIM(ADJUSTL(datatype))
+WRITE(fh,'(A)')          "LOOKUP_TABLE default"
+WRITE(fh,'(A)')          ""
 
 CLOSE(UNIT=fh)
 END SUBROUTINE write_vtk_struct_points_header
@@ -165,7 +512,7 @@ CHARACTER(len=mcl), DIMENSION(3) :: token
 !------------------------------------------------------------------------------
 ! Determine a new unit
 !------------------------------------------------------------------------------  
-fh = give_new_unit
+fh = give_new_unit()
 OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 
 hdr_lngth=0
@@ -178,40 +525,29 @@ DO ii=1,10
 
    IF (ntokens > 0) THEN
    
-      IF (tokens(1) == "DIMENSIONS") THEN
-         READ(tokens(2),'(I0)')  dims(1)
-         READ(tokens(3),'(I0)')  dims(2)
-         READ(tokens(4),'(I0)')  dims(3)
+      SELECT CASE(tokens(1))
+         CASE('DIMENSIONS'); READ(tokens(2:4),'(I15)') dims(1:3)
+         CASE('SPACING'); READ(tokens(2:4),'(F15.6)') spcng(1:3)  
+         CASE('ORIGIN'); READ(tokens(2:4),'(F15.6)') origin(1:3)  
+         CASE('DATASET')
+            IF (tokens(2) /= "STRUCTURED_POINTS") THEN
+               mssg = "The input file "//TRIM(filename)//" does not contain STRUCTURED_POINTS!"
+               CALL print_err_stop(std_out, mssg, 1)
+            END IF
 
-      ELSE IF (tokens(1) == "SPACING") THEN
-         READ(tokens(2),'(F15.6)') spcng(1)  
-         READ(tokens(3),'(F15.6)') spcng(2)  
-         READ(tokens(4),'(F15.6)') spcng(3)  
+         CASE('SCALARS')
+            token(3) = tokens(3)
 
-      ELSE IF ((tokens(1) == "DATASET") .AND. (tokens(2) /= "STRUCTURED_POINTS")) THEN
-            mssg = "The input file "//TRIM(filename)//" does not contain STRUCTURED_POINTS!"
-            CALL print_err_stop(std_out, txt, 1)
-         END IF
-
-      ELSE IF (tokens(1) == "ORIGIN") THEN
-         READ(tokens(2), '(F15.6)') origin(1)  
-         READ(tokens(3), '(F15.6)') origin(2)  
-         READ(tokens(4), '(F15.6)') origin(3)  
-
-      ELSE IF (tokens(1) == "SCALARS") THEN
-         !-- Get data type of the vtk-file
-         token(3) = tokens(3)
-
-         SELECT CASE( TRIM( token(3) ) )
-            CASE('float') ; type = 'rk4'
-            CASE('double'); type = 'rk8'
-            CASE('int')   ; type = 'ik4'
-            CASE('short') ; type = 'ik2'
-            CASE('unsigned_short'); type = 'uik2'
-            CASE DEFAULT
-               WRITE(*,'(A)') "No valid type given in *.vtk File." 
-         END SELECT
-      END IF
+            SELECT CASE( TRIM( token(3) ) )
+               CASE('float') ; type = 'rk4'
+               CASE('double'); type = 'rk8'
+               CASE('int')   ; type = 'ik4'
+               CASE('short') ; type = 'ik2'
+               CASE('unsigned_short'); type = 'uik2'
+               CASE DEFAULT
+                  WRITE(*,'(A)') "No valid type given in *.vtk File." 
+            END SELECT
+      END SELECT
    END IF !ntokens <0
 END DO
 
@@ -219,370 +555,4 @@ CLOSE(fh)
 
 END SUBROUTINE read_vtk_meta
 
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_read_raw_ik2
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Read the raw int2 data of a binary blob
-!
-!> @param[in] fh File handle
-!> @param[in] filename File name
-!> @param[in] disp Length of the header (bytes)
-!> @param[in] dims Amount of voxels per direction
-!> @param[in] subarray_dims Amount of voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray int4 data
-!> @param[in] bigendian true or false (little endian)
-!------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_ik2(fh, filename, disp, dims, subarray_dims, subarray_origin, subarray, bigendian)
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-LOGICAL, INTENT(IN) :: bigendian
-
-INTEGER(KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep
-
-datarep = 'INTERNAL'
-IF (bigendian) datarep = 'EXTERNAL32'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray,ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-END SUBROUTINE mpi_read_raw_ik2
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_read_raw_ik4
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Read the raw int4 data of a binary blob
-!
-!> @param[in] fh File handle
-!> @param[in] filename File name
-!> @param[in] disp Length of the header (bytes)
-!> @param[in] dims Amount of voxels per direction
-!> @param[in] subarray_dims Amount of voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray int4 data
-!> @param[in] bigendian true or false (little endian)
-!------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_ik4(fh, filename, disp, dims, subarray_dims, subarray_origin, subarray, bigendian)
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-LOGICAL, INTENT(IN) :: bigendian
-
-INTEGER(KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep
-
-datarep = 'INTERNAL'
-IF (bigendian) datarep = 'EXTERNAL32'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray,ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-END SUBROUTINE mpi_read_raw_ik4
-
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_read_raw_uik2
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Read the raw int2 data of a binary blob
-!
-!> @description
-!> Unsigned short. Fortran does not know this shit. Therefore a workaround...
-!
-!> @param[in] fh File handle
-!> @param[in] filename File name
-!> @param[in] disp Length of the header (bytes)
-!> @param[in] dims Amount of voxels per direction
-!> @param[in] subarray_dims Amount of voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray int4 data
-!> @param[in] bigendian true or false (little endian)
-!------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_uik2(fh, filename, disp, dims, subarray_dims, subarray_origin, subarray, bigendian)
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-LOGICAL, INTENT(IN) :: bigendian
-
-INTEGER(KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep
-
-datarep = 'INTERNAL'
-IF (bigendian) datarep = 'EXTERNAL32'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray,ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-! Not so pretty workaround
-DO kk=1, subarray_dims(1)
-DO jj=1, subarray_dims(2)
-DO ii=1, subarray_dims(3)
-   IF(subarray(ii,jj,kk)<=0) subarray(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
-END DO
-END DO
-END DO
-
-subarray = subarray - 32768_ik
-
-END SUBROUTINE mpi_read_raw_uik2
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_read_raw_rk4
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Read the raw real 4 (single precision) data of a binary blob
-!
-!> @param[in] fh File handle
-!> @param[in] filename File name
-!> @param[in] disp Length of the header (bytes)
-!> @param[in] dims Amount of voxels per direction
-!> @param[in] subarray_dims Amount of voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray int4 data
-!> @param[in] bigendian true or false (little endian)
-!------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_rk4(fh, filename, disp, dims, subarray_dims, subarray_origin, subarray, bigendian)
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-LOGICAL, INTENT(IN) :: bigendian
-
-INTEGER(KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep
-
-datarep = 'INTERNAL'
-IF (bigendian) datarep = 'EXTERNAL32'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_REAL, type_subarray,ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW(fh, disp, MPI_REAL, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-END SUBROUTINE mpi_read_raw_rk4
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_read_raw_rk8
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Read the raw real 8 (double precision) data of a binary blob
-!
-!> @param[in] fh File handle
-!> @param[in] filename File name
-!> @param[in] disp Length of the header (bytes)
-!> @param[in] dims Amount of voxels per direction
-!> @param[in] subarray_dims Amount of voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray int4 data
-!> @param[in] bigendian true or false (little endian)
-!------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_rk8(fh, filename, disp, dims, subarray_dims, subarray_origin, subarray, bigendian)
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-LOGICAL, INTENT(IN) :: bigendian
-
-INTEGER(KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep
-
-datarep = 'INTERNAL'
-IF (bigendian) datarep = 'EXTERNAL32'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, type_subarray,ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW(fh, disp, MPI_DOUBLE_PRECISION, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-END SUBROUTINE mpi_read_raw_rk8
-
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_write_raw_ik2
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Write the raw data of a vtk file
-!
-!> @description
-!
-!> @param[in] fh File handle
-!> @param[in] disp Length of the header (bytes) - position to write to
-!> @param[in] filename File name
-!> @param[in] dims Voxels per direction
-!> @param[in] subarray_dims Voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the subarray
-!> @param[in] subarray Scalar field / Image data
-!------------------------------------------------------------------------------  
- SUBROUTINE mpi_write_raw_ik2 (fh, filename, disp, dims, subarray_dims, subarray_origin, subarray)
-! type = 'int2', 'int4'
-! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-
-INTEGER  (KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep = 'INTERNAL'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray, ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW( fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-END SUBROUTINE mpi_write_raw_ik2
-
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: mpi_write_raw_ik4
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-!> @brief
-!> Write the raw data of a vtk file
-!
-!> @description
-!
-!> @param[in] fh File handle
-!> @param[in] disp Length of the header (bytes) - position to write to
-!> @param[in] filename File name
-!> @param[in] dims Voxels per direction
-!> @param[in] subarray_dims Voxels per direction of the subarray
-!> @param[in] subarray_origin Physical origin of the subarray
-!> @param[in] subarray Scalar field / Image data
-!------------------------------------------------------------------------------  
- SUBROUTINE mpi_write_raw_ik4 (fh, filename, disp, dims, subarray_dims, subarray_origin, subarray)
-! type = 'int2', 'int4'
-! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
-
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
-INTEGER(KIND=ik)             , INTENT(IN) :: fh
-INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
-INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-
-INTEGER  (KIND=ik) :: ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep = 'INTERNAL'
-
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray, ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW( fh, disp, MPI_INTEGER, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
-
-CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-CALL MPI_FILE_CLOSE(fh, ierr)
-
-END SUBROUTINE mpi_write_raw_ik4
-END MODULE file_routines_mpi
+END MODULE vtk_meta_data
