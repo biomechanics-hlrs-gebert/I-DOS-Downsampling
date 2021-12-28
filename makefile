@@ -40,6 +40,7 @@ export build_path
 subtree_path= $(build_path)/central_src/
 #
 subtree_obj_dir = $(subtree_path)/obj/
+subtree_mod_dir = $(subtree_path)/mod/
 #
 mod_dir   = $(build_path)/mod/
 obj_dir   = $(build_path)/obj/
@@ -98,10 +99,8 @@ f-objects = $(subtree_obj_dir)mod_global_std$(obj_ext)\
 			$(subtree_obj_dir)mod_strings$(obj_ext)\
 			$(subtree_obj_dir)mod_messages_errors$(obj_ext) \
 			$(subtree_obj_dir)mod_meta$(obj_ext) \
-			$(obj_dir)mod_kernels$(obj_ext)\
 			$(obj_dir)mod_file_routines_mpi$(obj_ext)\
-			$(obj_dir)mod_aux_routines_ip$(obj_ext)\
-			$(obj_dir)ct_image_filter$(obj_ext)
+			$(obj_dir)vtk_to_raw$(obj_ext)
 
 # ------------------------------------------------------------------------------
 # Build the subtree directory first
@@ -115,7 +114,7 @@ all: subtree $(main_bin)
 
 # ------------------------------------------------------------------------------
 # Files routines module
-$(obj_dir)mod_file_routines_mpi$(obj_ext):$(mod_dir)global_std$(mod_ext)\
+$(obj_dir)mod_file_routines_mpi$(obj_ext):$(subtree_mod_dir)global_std$(mod_ext)\
 								$(f-src_dir)mod_file_routines_mpi$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_file_routines_mpi$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_file_routines_mpi$(f90_ext) -o $@
@@ -123,9 +122,8 @@ $(obj_dir)mod_file_routines_mpi$(obj_ext):$(mod_dir)global_std$(mod_ext)\
 
 # --------------------------------------------------------------------------------------------------
 # MAIN OBJECT
-$(obj_dir)vtk_to_raw$(obj_ext):$(mod_dir)global_std$(mod_ext)\
+$(obj_dir)vtk_to_raw$(obj_ext):$(subtree_mod_dir)global_std$(mod_ext)\
 						 $(mod_dir)file_routines_mpi$(mod_ext)\
- 			             $(mod_dir)strings$(mod_ext)\
 						 $(f-src_dir)vtk_to_raw$(f90_ext)
 	@echo "-- Compiles: " $(f-src_dir)vtk_to_raw$(f90_ext)" -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)vtk_to_raw$(f90_ext) -o $@
