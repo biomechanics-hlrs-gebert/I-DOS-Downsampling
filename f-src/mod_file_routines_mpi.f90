@@ -212,6 +212,69 @@ END SUBROUTINE read_vtk_meta
 
 
 !------------------------------------------------------------------------------
+! SUBROUTINE: mpi_read_raw_prepare
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Prepare reading raw binary blobs via mpi
+!
+!> @param[in] filename File name
+!> @param[in] hdr_lngth Length of the header (bytes)
+!> @param[in] dims Amount of voxels per direction
+!> @param[in] subarray_dims Amount of voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the data set
+!------------------------------------------------------------------------------  
+SUBROUTINE mpi_read_raw_prepare(filename, hdr_lngth, dims, subarray_dims, subarray_origin)
+
+CHARACTER(LEN=*), INTENT(IN)  :: filename
+INTEGER(KIND=MPI_OFFSET_KIND) :: hdr_lngth
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: dims
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: subarray_dims
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: subarray_origin
+
+INTEGER  (KIND=ik) :: ierr, type_subarray
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+   MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray,ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+CALL MPI_FILE_SET_VIEW(fh, hdr_lngth, MPI_INTEGER, type_subarray, &
+   'EXTERNAL32', MPI_INFO_NULL, ierr)
+
+END SUBROUTINE mpi_read_raw_prepare
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_read_raw_release
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Finish reading raw binary blobs via mpi
+!
+!> @param[in] fh File handle
+!> @param[in] type_subarray mpi subarray type
+!------------------------------------------------------------------------------  
+SUBROUTINE mpi_read_raw_release(fh, type_subarray)
+
+CHARACTER(LEN=*), INTENT(IN) :: fh
+INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: type_subarray
+
+INTEGER  (KIND=ik) :: ierr
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+END SUBROUTINE mpi_read_raw_release
+
+
+
+
+!------------------------------------------------------------------------------
 ! SUBROUTINE: mpi_read_raw_ik4
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
@@ -293,26 +356,14 @@ INTEGER(KIND=ik) :: fh
 ! MPI
 INTEGER  (KIND=ik) :: ierr, type_subarray
 
+! CALLED BY MAIN PROGRAM?!
+!  CALL mpi_read_raw_prepare(filename, hdr_lngth, dims, subarray_dims, subarray_origin)
 
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray,ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-
-CALL MPI_FILE_SET_VIEW(fh, hdr_lngth, MPI_INTEGER, type_subarray, &
-   'EXTERNAL32', MPI_INFO_NULL, ierr)
-
-! >>>>>>>>>>>>>>>>>>>>>>>> ONLY THAT FOR INTERFACE <<<<<<<<<<<<<<<<<<<<
 ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
 
 CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-! >>>>>>>>>>>>>>>>>>>>>>>> ONLY THAT FOR INTERFACE <<<<<<<<<<<<<<<<<<<<
 
-CALL MPI_TYPE_FREE(type_subarray, ierr)
-
-CALL MPI_FILE_CLOSE(fh, ierr)
+CALL mpi_read_raw_release(fh, type_subarray)
 
 END SUBROUTINE mpi_read_raw_ik2
 
