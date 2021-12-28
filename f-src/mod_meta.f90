@@ -13,11 +13,6 @@ MODULE meta
 
 IMPLICIT NONE
 
-   !------------------------------------------------------------------------------
-   ! Provide versioning information for transparent data tracking
-   !------------------------------------------------------------------------------  
-   INCLUDE 'include_f90/revision_meta.f90'
-
    INTEGER, PARAMETER :: meta_ik = 4
    INTEGER, PARAMETER :: meta_rk = 8
    INTEGER, PARAMETER :: meta_mcl = 512
@@ -1100,7 +1095,7 @@ SUBROUTINE meta_write_R1D (fh, keyword, unit, real_1D)
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
-REAL(KIND=meta_ik), INTENT(IN), DIMENSION(:) :: real_1D 
+REAL(KIND=meta_rk), INTENT(IN), DIMENSION(:) :: real_1D 
 
 CHARACTER(LEN=meta_scl) :: stdspcfill, str
 INTEGER  (KIND=meta_ik) :: ii
@@ -1132,10 +1127,14 @@ END SUBROUTINE meta_write_R1D
 !> @description
 !> Requires a "revision.meta" or similar inclusion of verisoning info, 
 !> provided by a makefile. Furhermore, it requires a global_stds file.
+!
+!> @param[in] revision Version number of the program
+!> @param[in] hash Git hash of the repository
+!> @param[in] binary_name Name of the executable
 !------------------------------------------------------------------------------
-SUBROUTINE meta_signing(binary_name)
+SUBROUTINE meta_signing(revision, hash, binary_name)
 
-CHARACTER(LEN=*), INTENT(IN)  :: binary_name
+CHARACTER(LEN=*), INTENT(IN)  :: revision, hash, binary_name
 
 WRITE(fhmeo, '(A)')
 CALL meta_write (fhmeo, 'PROGRAM_VERSION' , revision)
