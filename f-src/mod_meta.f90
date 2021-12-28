@@ -42,6 +42,7 @@ IMPLICIT NONE
    INTEGER(KIND=meta_ik), PARAMETER :: fh_head     = 27, fhh    = 27
    INTEGER(KIND=meta_ik), PARAMETER :: fh_tex      = 28, fht    = 28
    INTEGER(KIND=meta_ik), PARAMETER :: fh_vtk      = 29, fhv    = 29
+   INTEGER(KIND=meta_ik), PARAMETER :: fh_raw      = 30, fhra   = 30
    CHARACTER(LEN=*), PARAMETER :: log_suf  = '.log'
    CHARACTER(LEN=*), PARAMETER :: lock_suf = '.lock'
    CHARACTER(LEN=*), PARAMETER :: head_suf = '.head'
@@ -51,6 +52,7 @@ IMPLICIT NONE
    CHARACTER(LEN=*), PARAMETER :: csv_suf  = '.csv'
    CHARACTER(LEN=*), PARAMETER :: tex_suf  = '.tex'
    CHARACTER(LEN=*), PARAMETER :: vtk_suf  = '.vtk'
+   CHARACTER(LEN=*), PARAMETER :: raw_suf  = '.raw'
 
    ! Meta data basename handling
    TYPE basename
