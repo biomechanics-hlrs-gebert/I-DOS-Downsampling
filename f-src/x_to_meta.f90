@@ -20,14 +20,12 @@ IMPLICIT NONE
 INTEGER(KIND=mpi_ik) :: ierr, rank_mpi, size_mpi
 
 ! Std variables
-CHARACTER(LEN=mcl) :: vtk, new_basename, typ
+CHARACTER(LEN=mcl) :: vtk, new_basename, type_in, type_out
 CHARACTER(LEN=mcl) :: filename='', filename_meta
-INTEGER(KIND=ik)   :: hdr
+INTEGER(KIND=ik)   :: hdr, std_out
 
 INTEGER(KIND=ik), DIMENSION(3) :: dims
 REAL(KIND=rk)   , DIMENSION(3) :: spcng, origin
-
-REAL(KIND=rk) :: start, end
 
 ! Binary blob variables
 REAL   (KIND=REAL32), DIMENSION(:,:,:), ALLOCATABLE :: rryrk4
@@ -50,93 +48,106 @@ CALL print_err_stop(std_out, "MPI_COMM_SIZE couldn't be retrieved", INT(ierr, KI
 If (size_mpi < 2) CALL print_err_stop(std_out, "We need at least 2 MPI processes to execute this program.", 1)
 
 !------------------------------------------------------------------------------
-! Start actual program
+! Rank 0 -- Init (Master) Process and broadcast init parameters 
 !------------------------------------------------------------------------------
-CALL show_title(longname, revision)
+If (rank_mpi==0) Then
 
-CALL GET_COMMAND_ARGUMENT(1, filename)
+    !------------------------------------------------------------------------------
+    ! Start actual program
+    !------------------------------------------------------------------------------
+    CALL std_out = determine_stout()
 
-IF (filename='') CALL print_err_stop(std_out, "No input file given", 1)
+    CALL show_title(longname, revision)
 
-CALL meta_create_new(TRIM(ADJUSTL(filename)))
+    CALL GET_COMMAND_ARGUMENT(1, filename)
 
-!------------------------------------------------------------------------------
-! Read VTK file header
-!------------------------------------------------------------------------------
-CALL read_vtk_meta (dh_di, vtk, hdr, dims, origin, spcng, type) 
+    IF (filename='') CALL print_err_stop(std_out, "No input file given", 1)
 
-!------------------------------------------------------------------------------
-! Write meta data 
-!------------------------------------------------------------------------------
-WRITE(fhmeo, '(A)') "# HLRS|NUM Dataset Meta Information"
-WRITE(fhmeo, '(A)') ""
-WRITE(fhmeo, '(A)') "* GENERAL_INFORMATION"
-CALL meta_write (fhmeo, 'CT_SCAN'          , in%dataset)
-CALL meta_write (fhmeo, 'OWNER',             "TBD by user")
-CALL meta_write (fhmeo, 'DATE_META_CREATED', "TBD by user")
-CALL meta_write (fhmeo, 'OWNER_CONTACT',     "TBD by user")
-CALL meta_write (fhmeo, 'DATE_CREATED',      "TBD by user")
-CALL meta_write (fhmeo, 'INTERNAL_ID',       "TBD by user")
-CALL meta_write (fhmeo, 'HISTORY'          , '(-)' , 1)
-CALL meta_write (fhmeo, 'TYPE'             , TRIM(ADJUSTL(type)))
-CALL meta_write (fhmeo, 'DATA_BYTE_ORDER'  , "LittleEndian")
-CALL meta_write (fhmeo, 'DIMENSIONALITY'   , '(-)'  , 3)
-CALL meta_write (fhmeo, 'DIMENSIONS'       , '(-)'  , dims)
-CALL meta_write (fhmeo, 'NO_SCALAR_CMPNNTS', '(-)'  , 1)
-CALL meta_write (fhmeo, 'SPACING'          , '(mm)' , spcng)
-CALL meta_write (fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)' , [0., 0., 0.])
-CALL meta_write (fhmeo, 'ORIGIN'           , '(-)'  , [0, 0, 0])
-CALL meta_write (fhmeo, 'FIELD_OF_VIEW'    , '(mm)' , dims*spcng)
-CALL meta_write (fhmeo, 'ENTRIES'          , '(-)'  , PRODUCT(dims))
+    CALL meta_create_new(TRIM(ADJUSTL(filename)))
 
-! # HLRS|NUM Dataset Batch Record
-! 
-! * GENERAL_INFORMATION
-! * CT_SCAN               FH01s3                                       ! HLRS internal nomenclature
-! * OWNER                 Johannes_Gebert
-! * OWNER_CONTACT         gebert@hlrs.de
-! * DATE_CREATED          04.09.2021                                   
-! * INTERNAL_ID           Testszenario                                 ! Briefly encode what was studied
-! 
-! * HISTORY               1                                            ! Number of consecutive images within binary data
-! * TYPE                  uint2                                        ! Data type of the binary image
-! * DATA_BYTE_ORDER       BigEndian                                    ! BigEndian, LittleEndian
-! * DIMENSIONALITY        3                                            ! Dimensions within the image
-! * DIMENSIONS            2940 2940 2141                               ! (Voxels)
-! * NO_SCALAR_CMPNNTS     1                                            ! Number of components per scalar (paraview requirement)
-! * SPACING               1.000000       1.000000       1.000000       ! (mm)
-! * ORIGIN_SHIFT_GLBL     3.575640       2.863500       2.584620       ! (mm)
-! * ORIGIN                0              0              0              ! (-)
-! * FIELD_OF_VIEW        43.953000      43.953000      32.007950       ! (mm)
-! * ENTRIES               18505947600                                  ! Typically the amount of voxels
+    !------------------------------------------------------------------------------
+    ! Read VTK file header
+    !------------------------------------------------------------------------------
+    CALL read_vtk_meta (filename, hdr, dims, origin, spcng, type_in) 
 
+    !------------------------------------------------------------------------------
+    ! Determine data types
+    ! Data types are converted to integer, since the provided precision on the
+    ! data is sufficient.
+    !------------------------------------------------------------------------------
+    SELECT CASE(type_in)
+        CASE('rk4') ; type_out = 'ik4'
+        CASE('rk8') ; type_out = 'ik4'
+        CASE('ik4') ; type_out = 'ik4'
+        CASE('ik2') ; type_out = 'ik2'
+        CASE('uik2'); type_out = 'ik2'
+    END SELECT
 
-!------------------------------------------------------------------------------
-! Read binary part of the vtk file
-! Open Vtk as big endian (!) stream
-!------------------------------------------------------------------------------
-CALL mpi_read_raw_prepare(filename, hdr, dims, subarray_dims, subarray_origin)
+    !------------------------------------------------------------------------------
+    ! Write meta data 
+    !------------------------------------------------------------------------------
+    WRITE(fhmeo, '(A)') "# HLRS|NUM Dataset Meta Information"
+    WRITE(fhmeo, '(A)') ""
+    WRITE(fhmeo, '(A)') "* GENERAL_INFORMATION"
+    CALL meta_write (fhmeo, 'CT_SCAN'          , in%dataset)
+    CALL meta_write (fhmeo, 'OWNER',             "TBD by user")
+    CALL meta_write (fhmeo, 'DATE_META_CREATED', "TBD by user")
+    CALL meta_write (fhmeo, 'OWNER_CONTACT',     "TBD by user")
+    CALL meta_write (fhmeo, 'DATE_CREATED',      "TBD by user")
+    CALL meta_write (fhmeo, 'INTERNAL_ID',       "TBD by user")
+    CALL meta_write (fhmeo, 'HISTORY',           '(-)' , 1)
+    
+    ! Write original data type to file for documentaroy purposes
+    CALL meta_write (fhmeo, 'TYPE_IMPORT', TRIM(ADJUSTL(type_in)))
+    CALL meta_write (fhmeo, 'TYPE_RAW', TRIM(ADJUSTL(type_out)))
+    
+    !------------------------------------------------------------------------------
+    ! Data always are written as little endian; only vtk requires big endian.
+    !------------------------------------------------------------------------------
+    CALL meta_write (fhmeo, 'DATA_BYTE_ORDER'  , "LittleEndian")
+    CALL meta_write (fhmeo, 'DIMENSIONALITY'   , '(-)'  , 3)
+    CALL meta_write (fhmeo, 'DIMENSIONS'       , '(-)'  , dims)
+    CALL meta_write (fhmeo, 'NO_SCALAR_CMPNNTS', '(-)'  , 1)
+    CALL meta_write (fhmeo, 'SPACING'          , '(mm)' , spcng)
+    CALL meta_write (fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)' , [0., 0., 0.])
+    CALL meta_write (fhmeo, 'ORIGIN'           , '(-)'  , [0, 0, 0])
+    CALL meta_write (fhmeo, 'FIELD_OF_VIEW'    , '(mm)' , dims*spcng)
+    CALL meta_write (fhmeo, 'ENTRIES'          , '(-)'  , PRODUCT(dims))
 
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-
-CALL mpi_read_raw_release(fh, type_subarray)
-
+END IF ! rank_mpi==0
 
 !------------------------------------------------------------------------------
-! Write raw data
+! Read binary part of the vtk file - basically a *.raw file
 !------------------------------------------------------------------------------
-OPEN (UNIT=fh_ro, FILE=TRIM(filename_raw), ACCESS="stream", FORM="unformatted", STATUS="new")
+fh = give_new_unit
 
-SELECT CASE(TRIM(typ))
-    CASE ('rk4'); WRITE(UNIT=fh_ro) rryrk4(:,:,:); DEALLOCATE(rryrk4)
-    CASE ('rk8'); WRITE(UNIT=fh_ro) rryrk8(:,:,:); DEALLOCATE(rryrk8)
-    CASE ('ik4'); WRITE(UNIT=fh_ro) rryik4(:,:,:); DEALLOCATE(rryik4)
-    CASE DEFAULT; WRITE(UNIT=fh_ro) rryik2(:,:,:); DEALLOCATE(rryik2)
+SELECT CASE(type_in)
+    CASE('rk4') 
+        CALL mpi_read_raw(fh, in%p_n_bsnm//vtk_suf, hdr, dims, subarray_dims, subarray_origin, subarray_rk4, .TRUE.)
+    CASE('rk8') 
+        CALL mpi_read_raw(fh, in%p_n_bsnm//vtk_suf, hdr, dims, subarray_dims, subarray_origin, subarray_rk8, .TRUE.)
+    CASE('ik4') 
+        CALL mpi_read_raw(fh, in%p_n_bsnm//vtk_suf, hdr, dims, subarray_dims, subarray_origin, subarray_ik4, .TRUE.)
+    CASE('ik2', 'uik2') 
+        CALL mpi_read_raw(fh, in%p_n_bsnm//vtk_suf, hdr, dims, subarray_dims, subarray_origin, subarray_ik2, .TRUE.)
 END SELECT
 
-CLOSE(UNIT=fh_ro)
+!------------------------------------------------------------------------------
+! Convert arrays and write raw data
+!------------------------------------------------------------------------------
+SELECT CASE(type_out)
+    CASE('ik2') 
+        CALL mpi_write_raw(fh, in%p_n_bsnm//raw_suf, 0, dims, subarray_dims, subarray_origin, subarray_ik2)
+    CASE('ik4') 
+        SELECT CASE(type_in)
+            CASE('rk4') 
+                subarray_ik4 = INT(subarray_rk4, KIND=INT32)
+            CASE('rk8') 
+                subarray_ik4 = INT(subarray_rk8, KIND=INT32)
+        END SELECT
+
+        CALL mpi_write_raw(fh, in%p_n_bsnm//raw_suf, 0, dims, subarray_dims, subarray_origin, subarray_ik4)
+END SELECT
 
 !------------------------------------------------------------------------------
 ! Finish program

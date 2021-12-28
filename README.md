@@ -13,3 +13,6 @@ The program essentially introduces the meta file to the process chain.
 ## Usage:
 The program currently only accepts *.vtk files with a proper meta basename.
 ```./xtom_v2.0.0_x86_64 <basename>.vtk```
+
+##  Meta File Format
+The restart handling is not adopted for this program as the need for compute time and the probability of failure are negligible.
