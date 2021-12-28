@@ -1,7 +1,7 @@
 !------------------------------------------------------------------------------
 ! MODULE: meta
 !------------------------------------------------------------------------------
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 ! @Description:
 !> Module containing all meta file read/write routines.
@@ -200,6 +200,9 @@ END IF
 
 CALL parse( str=filename_with_suffix, delims=".", args=tokens, nargs=ntokens)
 
+!------------------------------------------------------------------------------
+! Accepts any input suffix
+!------------------------------------------------------------------------------
 CALL parse_basename(filename_with_suffix, "."//tokens(ntokens))
 
 !------------------------------------------------------------------------------
