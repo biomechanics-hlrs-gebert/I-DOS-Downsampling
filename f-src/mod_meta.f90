@@ -1,7 +1,7 @@
 !------------------------------------------------------------------------------
 ! MODULE: meta
 !------------------------------------------------------------------------------
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 ! @Description:
 !> Module containing all meta file read/write routines.
@@ -13,11 +13,6 @@ MODULE meta
 
 IMPLICIT NONE
 
-   !------------------------------------------------------------------------------
-   ! Provide versioning information for transparent data tracking
-   !------------------------------------------------------------------------------  
-   INCLUDE 'include_f90/revision_meta.f90'
-
    INTEGER, PARAMETER :: meta_ik = 4
    INTEGER, PARAMETER :: meta_rk = 8
    INTEGER, PARAMETER :: meta_mcl = 512
@@ -25,8 +20,8 @@ IMPLICIT NONE
 
    ! Character lengths
    INTEGER, PARAMETER :: kcl    = 25   ! Keyword character  length
-   INTEGER, PARAMETER :: ucl    = 10   ! Unit    character  length
-   INTEGER, PARAMETER :: stdspc = 30   ! Keyword standard space
+   INTEGER, PARAMETER :: ucl    = 8    ! Unit    character  length
+   INTEGER, PARAMETER :: stdspc = 39   ! Keyword standard space
 
    CHARACTER(LEN=kcl) :: global_meta_program_keyword
    CHARACTER(LEN=kcl) :: global_meta_prgrm_mstr_app
@@ -184,7 +179,7 @@ END SUBROUTINE meta_append
 !---------------------------------------------------------------------------  
 SUBROUTINE meta_create_new(filename_with_suffix)
 
-CHARACTER(LEN=meta_mcl), INTENT(IN) :: filename_with_suffix      
+CHARACTER(LEN=*), INTENT(IN) :: filename_with_suffix      
 
 INTEGER  (KIND=meta_ik) :: ntokens
 CHARACTER(LEN=meta_mcl) :: tokens(30)
@@ -194,9 +189,8 @@ LOGICAL :: exist
 ! Automatically aborts if there is no input file found on the drive
 !------------------------------------------------------------------------------
 INQUIRE (FILE = TRIM(filename_with_suffix), EXIST = exist)
-IF (exist) THEN
-   mssg = "The file "//TRIM(filename_with_suffix)//" already exists. &
-   &Please remove or rename it."
+IF (.NOT. exist) THEN
+   mssg = "The file "//TRIM(filename_with_suffix)//" does not exist."
    CALL print_err_stop(std_out, TRIM(mssg), 1)
 END IF
 
@@ -210,7 +204,13 @@ CALL parse_basename(filename_with_suffix, "."//tokens(ntokens))
 !------------------------------------------------------------------------------
 ! Create the meta input file
 !------------------------------------------------------------------------------
-OPEN(UNIT=fhmei, FILE=TRIM(in%p_n_bsnm)//meta_suf, &
+INQUIRE (FILE = TRIM(in%p_n_bsnm)//meta_suf, EXIST = exist)
+IF (exist) THEN
+   mssg = "The file "//TRIM(filename_with_suffix)//" already exists."
+   CALL print_err_stop(std_out, TRIM(mssg), 1)
+END IF
+
+OPEN(UNIT=fhmeo, FILE=TRIM(in%p_n_bsnm)//meta_suf, &
    ACTION='READWRITE', ACCESS='SEQUENTIAL', STATUS='NEW')
 
 END SUBROUTINE meta_create_new
@@ -738,7 +738,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
 
-READ(tokens(3), '(I10)') int_0D 
+READ(tokens(3), '(I12)') int_0D 
 
 END SUBROUTINE meta_read_I0D
 
@@ -769,7 +769,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
 
-READ(tokens(3), '(F30.10)') real_0D 
+READ(tokens(3), '(F39.10)') real_0D 
 
 END SUBROUTINE meta_read_R0D
 
@@ -799,7 +799,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, SIZE(int_1D), m_in, tokens, ntokens)
 
-READ(tokens(3:2+SIZE(int_1D)), '(I10)') int_1D
+READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
 END SUBROUTINE meta_read_I1D
 
@@ -830,7 +830,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, SIZE(real_1D), m_in, tokens, ntokens)
 
-READ(tokens(3:2+SIZE(real_1D)), '(F30.10)') real_1D
+READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
 END SUBROUTINE meta_read_R1D
 
@@ -855,6 +855,7 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: stdspcfill 
 CHARACTER(LEN=*), INTENT(IN) :: unit
 
+INTEGER(KIND=ik) :: rpt
 CHARACTER(LEN=meta_scl) :: fmt, str
 CHARACTER(LEN=8)  :: date
 CHARACTER(LEN=10) :: time
@@ -869,19 +870,31 @@ WRITE(fh, fmt, ADVANCE='NO') "w ", keyword
 WRITE(fmt, '(A,I0,A)') "(A, T", stdspc+1, ")"
 WRITE(fh, fmt, ADVANCE='NO') TRIM(ADJUSTL(stdspcfill))
 
-WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
-WRITE(fh, fmt, ADVANCE='NO') unit
-   
-CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
+!------------------------------------------------------------------------------
+! Only write if stdspcfill (are of actual information/data) was not overflowed
+! < instead of <= to get 1 space clearance
+!------------------------------------------------------------------------------  
+IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc) THEN
+   WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
+   WRITE(fh, fmt, ADVANCE='NO') unit
+   rpt=0
+ELSE
+   rpt = stdspc+ucl-LEN_TRIM(ADJUSTL(stdspcfill))
+END IF
 
-str = ''
-str = date(7:8)//'.'//date(5:6)//'.'//date(1:4)
-str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
-str = TRIM(str)//' '//timezone
+! Same as comment before
+IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc+ucl) THEN
+   CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
 
+   str = '' ! Clear string
+   str = REPEAT(' ', rpt)//date(7:8)//'.'//date(5:6)//'.'//date(1:4)
+   str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
+   str = TRIM(str)//' '//timezone
 
-WRITE(fh, '(A)') TRIM(str)
-
+   WRITE(fh, '(A)') TRIM(str)
+ELSE
+   WRITE(fh, '(A)') "" ! Basically a newline
+END IF
 END SUBROUTINE meta_write_keyword
 
 
@@ -980,8 +993,8 @@ END SUBROUTINE meta_write_sha256sum
 SUBROUTINE meta_write_C (fh, keyword, stdspcfill)
    
 INTEGER  (KIND=meta_ik), INTENT(IN) :: fh 
-CHARACTER(LEN=*)  , INTENT(IN) :: keyword
-CHARACTER(LEN=*)  , INTENT(IN) :: stdspcfill 
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=*), INTENT(IN) :: stdspcfill 
 
 CALL meta_write_keyword (fh, keyword, stdspcfill, '')
 
@@ -1035,9 +1048,10 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 REAL(KIND=meta_ik), INTENT(IN) :: real_0D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill
+CHARACTER(LEN=meta_scl) :: stdspcfill, fmt
 
-WRITE(stdspcfill, '(F30.7)') real_0D
+WRITE(fmt, '(A,I0,A)') "(F", stdspc, ".7)"
+WRITE(stdspcfill, fmt) real_0D ! '(F30.7)'
 
 CALL trimzero(stdspcfill)
 
@@ -1066,7 +1080,7 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 INTEGER(KIND=meta_ik), INTENT(IN), DIMENSION(:) :: int_1D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, str
+CHARACTER(LEN=meta_scl) :: stdspcfill, str, fmt
 INTEGER  (KIND=meta_ik) :: ii
 
 stdspcfill = ''
@@ -1074,7 +1088,8 @@ str = ''
 
 DO ii=1, SIZE(int_1D)
    str = ''
-   WRITE(str, '(I0)') int_1D(ii)
+   WRITE(fmt, '(A,I0,A)') "(I", (stdspc/3)-1, ")"
+   WRITE(str, fmt) int_1D(ii) ! '(I0)'
    stdspcfill = TRIM(stdspcfill)//' '//TRIM(str)
 END DO
 
@@ -1100,9 +1115,9 @@ SUBROUTINE meta_write_R1D (fh, keyword, unit, real_1D)
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
-REAL(KIND=meta_ik), INTENT(IN), DIMENSION(:) :: real_1D 
+REAL(KIND=meta_rk), INTENT(IN), DIMENSION(:) :: real_1D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, str
+CHARACTER(LEN=meta_scl) :: stdspcfill, str, fmt
 INTEGER  (KIND=meta_ik) :: ii
 
 stdspcfill = ''
@@ -1110,9 +1125,9 @@ str = ''
 
 DO ii=1, SIZE(real_1D)
    str = ''
-   WRITE(str, '(F15.7)') real_1D(ii)
-
-   CALL trimzero(str)
+   WRITE(fmt, '(A,I0,A)') "(F", (stdspc/3)-1, ".7)"
+   WRITE(str, fmt) real_1D(ii)
+   ! CALL trimzero(str) ! Choose preferred formatting
 
    stdspcfill = TRIM(stdspcfill)//' '//TRIM(str)
 END DO
@@ -1132,10 +1147,14 @@ END SUBROUTINE meta_write_R1D
 !> @description
 !> Requires a "revision.meta" or similar inclusion of verisoning info, 
 !> provided by a makefile. Furhermore, it requires a global_stds file.
+!
+!> @param[in] revision Version number of the program
+!> @param[in] hash Git hash of the repository
+!> @param[in] binary_name Name of the executable
 !------------------------------------------------------------------------------
-SUBROUTINE meta_signing(binary_name)
+SUBROUTINE meta_signing(revision, hash, binary_name)
 
-CHARACTER(LEN=*), INTENT(IN)  :: binary_name
+CHARACTER(LEN=*), INTENT(IN)  :: revision, hash, binary_name
 
 WRITE(fhmeo, '(A)')
 CALL meta_write (fhmeo, 'PROGRAM_VERSION' , revision)

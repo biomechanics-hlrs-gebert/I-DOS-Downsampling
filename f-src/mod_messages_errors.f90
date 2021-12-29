@@ -30,6 +30,7 @@ Character(Len=*), Parameter :: FMT_ERR_AI0  = "('EE ', *(A,I0))"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
 
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A = "('-- ',A,1X,F0.6,1x,A)"
 
 !------------------------------------------------------------------------------
 ! Message formats
@@ -102,7 +103,7 @@ WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
 WRITE(std_out, FMT_TXT) ''
 WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(application_name))//' '//TRIM(ADJUSTL(revision))
 WRITE(std_out, FMT_TXT) ''     
-WRITE(std_out, FMT_TXT) 'Developer & maintainer: Johannes Gebert, M.Sc.  (HLRS, NUM)'
+WRITE(std_out, FMT_TXT) 'Developer & maintainer: Johannes Gebert, M.Sc. (HLRS, NUM)'
 WRITE(std_out, FMT_TXT_SEP)
 END SUBROUTINE show_title
 
