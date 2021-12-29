@@ -33,6 +33,7 @@ INTEGER(KIND=ik) :: hdr
 INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections, rank_section
 INTEGER(KIND=ik), DIMENSION(3) :: remainder_per_dir, dims_reduced, subarray_origin
 REAL   (KIND=rk), DIMENSION(3) :: spcng, origin
+REAL   (KIND=rk) :: start, end
 
 ! Binary blob variables
 REAL   (KIND=REAL32), DIMENSION(:,:,:), ALLOCATABLE :: rry_rk4
@@ -58,6 +59,8 @@ IF (size_mpi < 2) CALL print_err_stop(std_out, "We need at least 2 MPI processes
 ! Rank 0 -- Init (Master) Process and broadcast init parameters 
 !------------------------------------------------------------------------------
 IF (my_rank==0) THEN
+
+    CALL CPU_TIME(start)
 
     !------------------------------------------------------------------------------
     ! Start actual program
@@ -211,7 +214,9 @@ END SELECT
 ! Finish program
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
-    WRITE(std_out, FMT_TXT) 'Finishing the program.'
+    CALL CPU_TIME(end)
+
+    WRITE(std_out, FMT_TXT_AF0A) 'Finishing the program took', end-start,'seconds.'
     WRITE(std_out, FMT_TXT_SEP)
 
     CALL meta_signing(revision, hash, binary)
