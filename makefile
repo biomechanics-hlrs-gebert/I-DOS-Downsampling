@@ -106,7 +106,7 @@ f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 			$(st_obj_dir)mod_strings$(obj_ext)\
 			$(st_obj_dir)mod_messages_errors$(obj_ext) \
 			$(st_obj_dir)mod_meta$(obj_ext) \
-			$(obj_dir)mod_vtk_raw$(obj_ext)\
+			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
 			$(obj_dir)x_to_meta$(obj_ext)
 
 # ------------------------------------------------------------------------------
@@ -119,18 +119,10 @@ st:
 all: st $(main_bin)  
 
 
-# ------------------------------------------------------------------------------
-# Files routines module
-$(obj_dir)mod_vtk_raw$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
-								$(f-src_dir)mod_vtk_raw$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
-	@echo
-
 # --------------------------------------------------------------------------------------------------
 # MAIN OBJECT
-$(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(mod_dir)raw_binary$(mod_ext)\
-						 $(mod_dir)vtk_meta_data$(mod_ext)\
+$(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(st_mod_dir)raw_binary$(mod_ext)\
+						 $(st_mod_dir)vtk_meta_data$(mod_ext)\
 						 $(f-src_dir)x_to_meta$(f90_ext)
 	@echo "-- Compiles: " $(f-src_dir)x_to_meta$(f90_ext)" -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)x_to_meta$(f90_ext) -o $@
