@@ -179,7 +179,7 @@ END SUBROUTINE meta_append
 !---------------------------------------------------------------------------  
 SUBROUTINE meta_create_new(filename_with_suffix)
 
-CHARACTER(LEN=meta_mcl), INTENT(IN) :: filename_with_suffix      
+CHARACTER(LEN=*), INTENT(IN) :: filename_with_suffix      
 
 INTEGER  (KIND=meta_ik) :: ntokens
 CHARACTER(LEN=meta_mcl) :: tokens(30)
@@ -189,9 +189,8 @@ LOGICAL :: exist
 ! Automatically aborts if there is no input file found on the drive
 !------------------------------------------------------------------------------
 INQUIRE (FILE = TRIM(filename_with_suffix), EXIST = exist)
-IF (exist) THEN
-   mssg = "The file "//TRIM(filename_with_suffix)//" already exists. &
-   &Please remove or rename it."
+IF (.NOT. exist) THEN
+   mssg = "The file "//TRIM(filename_with_suffix)//" does not exist."
    CALL print_err_stop(std_out, TRIM(mssg), 1)
 END IF
 
@@ -205,7 +204,13 @@ CALL parse_basename(filename_with_suffix, "."//tokens(ntokens))
 !------------------------------------------------------------------------------
 ! Create the meta input file
 !------------------------------------------------------------------------------
-OPEN(UNIT=fhmei, FILE=TRIM(in%p_n_bsnm)//meta_suf, &
+INQUIRE (FILE = TRIM(in%p_n_bsnm)//meta_suf, EXIST = exist)
+IF (exist) THEN
+   mssg = "The file "//TRIM(filename_with_suffix)//" already exists."
+   CALL print_err_stop(std_out, TRIM(mssg), 1)
+END IF
+
+OPEN(UNIT=fhmeo, FILE=TRIM(in%p_n_bsnm)//meta_suf, &
    ACTION='READWRITE', ACCESS='SEQUENTIAL', STATUS='NEW')
 
 END SUBROUTINE meta_create_new
@@ -864,19 +869,28 @@ WRITE(fh, fmt, ADVANCE='NO') "w ", keyword
 WRITE(fmt, '(A,I0,A)') "(A, T", stdspc+1, ")"
 WRITE(fh, fmt, ADVANCE='NO') TRIM(ADJUSTL(stdspcfill))
 
-WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
-WRITE(fh, fmt, ADVANCE='NO') unit
-   
-CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
+!------------------------------------------------------------------------------
+! Only write if stdspcfill (are of actual information/data) was not overflowed
+! < instead of <= to get 1 space clearance
+!------------------------------------------------------------------------------  
+IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc) THEN
+   WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
+   WRITE(fh, fmt, ADVANCE='NO') unit
+END IF
 
-str = ''
-str = date(7:8)//'.'//date(5:6)//'.'//date(1:4)
-str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
-str = TRIM(str)//' '//timezone
+! Same as comment before
+IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc+ucl) THEN
+   CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
 
+   str = ''
+   str = date(7:8)//'.'//date(5:6)//'.'//date(1:4)
+   str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
+   str = TRIM(str)//' '//timezone
 
-WRITE(fh, '(A)') TRIM(str)
-
+   WRITE(fh, '(A)') TRIM(str)
+ELSE
+   WRITE(fh, '(A)') "" ! Basically a newline
+END IF
 END SUBROUTINE meta_write_keyword
 
 
@@ -1105,7 +1119,7 @@ str = ''
 
 DO ii=1, SIZE(real_1D)
    str = ''
-   WRITE(str, '(F15.7)') real_1D(ii)
+   WRITE(str, '(F10.6)') real_1D(ii)
 
    CALL trimzero(str)
 

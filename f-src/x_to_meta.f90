@@ -23,14 +23,15 @@ IMPLICIT NONE
 INCLUDE 'include_f90/revision_meta.f90'
 
 ! MPI variables
-INTEGER(KIND=mpi_ik) :: ierr, rank_mpi, size_mpi
+INTEGER(KIND=mpi_ik) :: ierr, my_rank, size_mpi
 
 ! Std variables
 CHARACTER(LEN=scl) :: type_in, type_out, binary
 CHARACTER(LEN=mcl) :: filename=''
 
 INTEGER(KIND=ik) :: hdr
-INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims
+INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections, rank_section
+INTEGER(KIND=ik), DIMENSION(3) :: remainder_per_dir, dims_reduced, subarray_origin
 REAL   (KIND=rk), DIMENSION(3) :: spcng, origin
 
 ! Binary blob variables
@@ -45,7 +46,7 @@ INTEGER(KIND=INT32) , DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4
 CALL mpi_init(ierr)
 CALL print_err_stop(std_out, "MPI_INIT didn't succeed", INT(ierr, KIND=ik))
 
-CALL MPI_COMM_RANK(MPI_COMM_WORLD, rank_mpi, ierr)
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
 CALL print_err_stop(std_out, "MPI_COMM_RANK couldn't be retrieved", INT(ierr, KIND=ik))
 
 CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
@@ -56,7 +57,7 @@ IF (size_mpi < 2) CALL print_err_stop(std_out, "We need at least 2 MPI processes
 !------------------------------------------------------------------------------
 ! Rank 0 -- Init (Master) Process and broadcast init parameters 
 !------------------------------------------------------------------------------
-IF (rank_mpi==0) THEN
+IF (my_rank==0) THEN
 
     !------------------------------------------------------------------------------
     ! Start actual program
@@ -128,37 +129,73 @@ IF (rank_mpi==0) THEN
     CALL meta_write (fhmeo, 'ORIGIN'           , '(-)'  , [0, 0, 0])
     CALL meta_write (fhmeo, 'FIELD_OF_VIEW'    , '(mm)' , dims*spcng)
     CALL meta_write (fhmeo, 'ENTRIES'          , '(-)'  , PRODUCT(dims))
+   
+    FLUSH(fhmeo)
 
-END IF ! rank_mpi==0
+END IF ! my_rank==0
 
-CALL MPI_BCAST (type_in, INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+!------------------------------------------------------------------------------
+! Send required variables
+!------------------------------------------------------------------------------
+CALL MPI_BCAST (type_in    , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (type_out   , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (in%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (hdr        , 1_mik               , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (dims       , 3_mik               , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+
+!------------------------------------------------------------------------------
+! Get dimensions for each domain. Every processor reveives its own domain.
+! Therefore, each my_rank calculates its own address/dimensions/parameters.
+!
+! The decomposition of an image depends on the task to be done. Therefore, 
+! these calculations are not encapsuled in a routine. However, this may
+! follow in an update during refactoring the 3D scalar image filter.
+!
+! Allocation of subarray memory is done in the read_raw routines.
+!------------------------------------------------------------------------------
+sections=0
+CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
+CALL get_rank_section(my_rank, sections, rank_section)
+
+remainder_per_dir = MODULO(dims, sections)
+
+dims_reduced   = dims - remainder_per_dir
+
+rry_dims  = (dims_reduced / sections)
+
+subarray_origin = (rank_section-1_ik) * (rry_dims) + 1_ik
+
+! Add the remainder to the last domains of each dimension
+IF(rank_section(1) == sections(1)) rry_dims(1) = rry_dims(1) + remainder_per_dir(1)
+IF(rank_section(2) == sections(2)) rry_dims(2) = rry_dims(2) + remainder_per_dir(2)
+IF(rank_section(3) == sections(3)) rry_dims(3) = rry_dims(3) + remainder_per_dir(3)
 
 !------------------------------------------------------------------------------
 ! Read binary part of the vtk file - basically a *.raw file
 !------------------------------------------------------------------------------
-IF(rank_mpi==0) WRITE(std_out, FMT_TXT) 'Reading binary information of *.vtk file.'
+IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading binary information of *.vtk file.'
 
 SELECT CASE(type_in)
     CASE('rk4') 
         ! MPI_OFFSET_KIND needs ik=8 in this case.
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, [0,0,0], rry_rk4)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk4)
     CASE('rk8') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, [0,0,0], rry_rk8)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk8)
     CASE('ik4') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, [0,0,0], rry_ik4)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik4)
     CASE('ik2', 'uik2') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, [0,0,0], rry_ik2)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik2)
         IF(type_in=='uik2') CALL uik2_to_ik2(rry_ik2)
 END SELECT
 
 !------------------------------------------------------------------------------
 ! Convert arrays and write raw data
 !------------------------------------------------------------------------------
-IF(rank_mpi==0) WRITE(std_out, FMT_TXT) 'Converting and writing binary information to *.raw file.'
+IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Converting and writing binary information to *.raw file.'
 
 SELECT CASE(type_out)
     CASE('ik2') 
-        CALL mpi_write_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, [0,0,0], rry_ik2)
+        CALL mpi_write_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik2)
     CASE('ik4') 
         SELECT CASE(type_in)
             CASE('rk4') 
@@ -167,21 +204,22 @@ SELECT CASE(type_out)
                 rry_ik4 = INT(rry_rk8, KIND=INT32)
         END SELECT
 
-        CALL mpi_write_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, [0,0,0], rry_ik4)
+        CALL mpi_write_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik4)
 END SELECT
 
 !------------------------------------------------------------------------------
 ! Finish program
 !------------------------------------------------------------------------------
-IF(rank_mpi == 0) THEN
+IF(my_rank == 0) THEN
     WRITE(std_out, FMT_TXT) 'Finishing the program.'
+    WRITE(std_out, FMT_TXT_SEP)
 
     CALL meta_signing(revision, hash, binary)
     CALL meta_close()
 
     IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
-END IF ! (rank_mpi == 0)
+END IF ! (my_rank == 0)
 
 Call MPI_FINALIZE(ierr)
 CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, KIND=ik))

@@ -40,6 +40,59 @@ End Interface mpi_write_raw
 
 CONTAINS
 
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: get_rank_section
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Get the section address/number of a specific domain
+!
+!> @param[in] domain No of the control volume. 
+!> @param[in] sections x/y/z mesh of domains
+!> @param[out] rank_section position of domain in x/y/z mesh
+!------------------------------------------------------------------------------  
+SUBROUTINE get_rank_section(domain, sections, rank_section)
+  
+INTEGER(KIND=ik)              , INTENT(IN)  :: domain
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN)  :: sections
+INTEGER(KIND=ik), DIMENSION(3), INTENT(OUT) :: rank_section
+
+INTEGER(KIND=ik) :: rank, yrmndr, zrmndr ! remainder
+
+!------------------------------------------------------------------------------
+! Power of 2 is handled here, because with the algorithm of CASE DEFAULT, Greedy suboptimality kicks in!  
+! Have a look at the corresponding Matlab/Octave testing file!
+! In example at size_mpi = 128 Processors, where CASE DEFAULT will deliver 125 Processors!
+!------------------------------------------------------------------------------
+IF ( domain == 0_ik ) THEN
+   rank_section = [ 1, 1, 1 ]
+ELSE
+   rank = domain + 1 ! MPI starts at 0
+
+   !------------------------------------------------------------------------------
+   ! Calculate the rank_section out of my_rank and sections [ x, y, z ]
+   ! Tested via Octave. Not fully implemented by 20210503
+   !------------------------------------------------------------------------------
+   zrmndr = MODULO(rank, sections(1)*sections(2))
+   IF (zrmndr == 0_ik) THEN
+      rank_section = [ sections(1), sections(2), (rank - zrmndr) / (sections(1)*sections(2)) ]
+   ELSE
+      rank_section(3) = (rank - zrmndr) / (sections(1) * sections(2)) 
+      yrmndr = MODULO(zrmndr, sections(1))
+
+      IF (yrmndr == 0_ik) THEN
+         rank_section = [ sections(1), (zrmndr - yrmndr) / sections(1), rank_section(3)+1 ]
+      ELSE
+         rank_section = [ yrmndr, (zrmndr - yrmndr) / sections(1) + 1, rank_section(3) + 1 ]
+      END IF
+   END IF
+END IF
+
+END SUBROUTINE get_rank_section
+
+
 !------------------------------------------------------------------------------
 ! SUBROUTINE: mpi_read_raw_ik2
 !------------------------------------------------------------------------------  
@@ -53,8 +106,7 @@ CONTAINS
 !> @param[in] dims Amount of voxels per direction
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray int4 data
-!> @param[in] bigendian true or false (little endian)
+!> @param[out] subarray data
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray)
 
@@ -64,10 +116,15 @@ INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origi
 INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh
+INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
+
+! Required to open files
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+
+CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
@@ -80,7 +137,7 @@ CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI
 
 ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
 
-CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+CALL MPI_FILE_READ_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
 CALL MPI_TYPE_FREE(type_subarray, ierr)
 
@@ -101,7 +158,7 @@ END SUBROUTINE mpi_read_raw_ik2
 !> @param[in] dims Amount of voxels per direction
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray data
+!> @param[out] subarray data
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
 
@@ -111,17 +168,15 @@ INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origi
 INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh ! my_rank, size_mpi, 
+INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
 
-! ! Required to open files
-! CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-! CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
+! Required to open files
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
 
-! CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
-! CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
+CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
@@ -154,11 +209,11 @@ END SUBROUTINE mpi_read_raw_ik4
 !> @description
 !> Fortran does not know this shit. Therefore a workaround...
 !
-!> @param[in] subarray int data
+!> @param[inout] subarray int data
 !------------------------------------------------------------------------------  
 SUBROUTINE uik2_to_ik2(subarray)
 
-INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(OUT) :: subarray
+INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(INOUT) :: subarray
 INTEGER(KIND=ik) :: ii, jj, kk
 
 ! Not so pretty workaround
@@ -187,7 +242,7 @@ END SUBROUTINE uik2_to_ik2
 !> @param[in] dims Amount of voxels per direction
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray data
+!> @param[out] subarray data
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
 
@@ -198,10 +253,15 @@ INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origi
 REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh
+INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
+
+! Required to open files
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+
+CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
@@ -236,7 +296,7 @@ END SUBROUTINE mpi_read_raw_rk4
 !> @param[in] dims Amount of voxels per direction
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
-!> @param[in] subarray data
+!> @param[out] subarray data
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray)
 
@@ -245,10 +305,16 @@ INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
-INTEGER(KIND=ik) :: ierr, type_subarray, fh
+! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
+INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
+
+! Required to open files
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+
+CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
@@ -296,11 +362,11 @@ END SUBROUTINE mpi_read_raw_rk8
 CHARACTER(LEN=*)             , INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(IN) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER  (KIND=ik) :: ierr, type_subarray, fh
-CHARACTER(LEN=scl) :: datarep = 'INTERNAL'
+CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
@@ -343,11 +409,11 @@ END SUBROUTINE mpi_write_raw_ik2
 CHARACTER(LEN=*)             , INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+INTEGER(KIND=INT32), DIMENSION (:,:,:), INTENT(IN) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER  (KIND=ik) :: ierr, type_subarray, fh
-CHARACTER(LEN=scl) :: datarep = 'INTERNAL'
+CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
@@ -394,8 +460,12 @@ CONTAINS
 !> @brief
 !> Write a *.vtk structured points header
 !
-!> @param[in] application_name Name of the program
-!> @param[in] revision Ravision of the program
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[in] type Data type
+!> @param[in] spcng Distance between to voxels/scalars
+!> @param[in] origin physical origin (mm)
+!> @param[in] dims Amount of voxels/scalars per direction
 !------------------------------------------------------------------------------
 SUBROUTINE write_vtk_struct_points_header (fh, filename, type, spcng, origin, dims)
 
@@ -487,16 +557,16 @@ END SUBROUTINE write_vtk_struct_points_footer
 !> Read a *.vtk structured points header (footer not relevant)
 !
 !> @param[in] filename File name
-!> @param[in] hdr_lngth Length of header (bytes)
-!> @param[in] dims Voxels per direction
-!> @param[in] origin Physical (mm) origin
-!> @param[in] spcng Physical distance between two voxels (mm)
-!> @param[in] type Data type contained in binary blob
+!> @param[out] disp Displacement, length of header (bytes)
+!> @param[out] dims Voxels per direction
+!> @param[out] origin Physical (mm) origin
+!> @param[out] spcng Physical distance between two voxels (mm)
+!> @param[out] type Data type contained in binary blob
 !------------------------------------------------------------------------------
-SUBROUTINE read_vtk_meta(filename, hdr_lngth, dims, origin, spcng, type)
+SUBROUTINE read_vtk_meta(filename, disp, dims, origin, spcng, type)
 
 CHARACTER(len=*)  , INTENT(IN)  :: filename
-INTEGER  (KIND=ik), INTENT(OUT) :: hdr_lngth
+INTEGER  (KIND=ik), INTENT(OUT) :: disp
 INTEGER  (KIND=ik), DIMENSION(3) , INTENT(OUT) :: dims
 REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: origin
 REAL     (KIND=rk), DIMENSION(3) , INTENT(OUT) :: spcng
@@ -515,11 +585,11 @@ CHARACTER(len=mcl), DIMENSION(3) :: token
 fh = give_new_unit()
 OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 
-hdr_lngth=0
+disp=0
 
 DO ii=1,10
    READ(fh,'(A)') line
-   hdr_lngth=hdr_lngth+LEN(TRIM(line))+1_ik ! eol characters, white charcter
+   disp=disp+LEN(TRIM(line))+1_ik ! eol characters, white charcter
    
    CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
 
