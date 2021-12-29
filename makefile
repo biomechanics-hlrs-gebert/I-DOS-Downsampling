@@ -87,7 +87,7 @@ compile_MODE = dev
 # http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
 ifeq ($(PE),gnu)
 	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir)
-	f90_dev_flags  = -g -o -O3 -fbacktrace -fbounds-check -fbackslash -Wno-conversion -Wall
+	f90_dev_flags  = -ggdb -o -O3 -fbacktrace -fbounds-check -fbackslash -Wno-conversion -Wall
 	f90_prod_flags = -O3 -fbounds-check
 
 	ifeq ($(compile_MODE),prod)
@@ -104,7 +104,7 @@ main_bin = $(bin_dir)$(bin_name)_$(trgt_vrsn)$(bin_suf)
 #
 f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 			$(st_obj_dir)mod_strings$(obj_ext)\
-			$(st_obj_dir)mod_messages_errors$(obj_ext) \
+			$(st_obj_dir)mod_user_interaction$(obj_ext) \
 			$(st_obj_dir)mod_meta$(obj_ext) \
 			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
 			$(obj_dir)x_to_meta$(obj_ext)
@@ -114,13 +114,14 @@ f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 st: 
 	$(MAKE) all -C $(st_path)
 	@echo 
+
 # ------------------------------------------------------------------------------
 # Begin Building
 all: st $(main_bin)  
 
 
 # --------------------------------------------------------------------------------------------------
-# MAIN OBJECT
+# Main object
 $(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(st_mod_dir)raw_binary$(mod_ext)\
 						 $(st_mod_dir)vtk_meta_data$(mod_ext)\
 						 $(f-src_dir)x_to_meta$(f90_ext)
@@ -133,12 +134,12 @@ $(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(st_mod_dir)raw
 # Final Link step of MAIN
 $(main_bin):$(f-objects)
 	@echo "----------------------------------------------------------------------------------"
-	@echo '--- Write revision and git info'
+	@echo '-- Write revision and git info'
 	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(f-src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "----------------------------------------------------------------------------------"
-	@echo '--- Final link step of $(long_name) executable'
+	@echo '-- Final link step of $(long_name) executable'
 	@echo "----------------------------------------------------------------------------------"
 	$(compiler) $(f-objects) -o $(main_bin)
 	@echo

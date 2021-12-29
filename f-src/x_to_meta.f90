@@ -9,7 +9,7 @@ PROGRAM xtometa
 
 USE ISO_FORTRAN_ENV
 USE global_std
-USE messages_errors
+USE user_interaction
 USE meta
 USE MPI
 USE vtk_meta_data
@@ -17,13 +17,8 @@ USE raw_binary
 
 IMPLICIT NONE
 
-!------------------------------------------------------------------------------
-! Provide versioning information for transparent data tracking
-!------------------------------------------------------------------------------  
-INCLUDE 'include_f90/revision_meta.f90'
-
 ! MPI variables
-INTEGER(KIND=mpi_ik) :: ierr, my_rank, size_mpi
+INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 ! Std variables
 CHARACTER(LEN=scl) :: type_in, type_out, binary
