@@ -149,11 +149,11 @@ $(main_bin):$(f-objects)
 
 help:
 	@echo "----------------------------------------------------------------------------------"
-	@echo "$(long_name) make targets"
-	@echo "Regular:  »make (all)«    - Build the $(long_name)"
-	@echo "Cleaning: »make clean«    - Remove build files, keep the central_src"
-	@echo "Cleaning: »make cleanall« - Remove all build files."
-	@echo "Docs:     »make docs      - Build the html and the tex documentation."
+	@echo "-- $(long_name) make targets"
+	@echo "-- Regular:  »make (all)«    - Build the $(long_name)"
+	@echo "-- Cleaning: »make clean«    - Remove build files, keep the central_src"
+	@echo "-- Cleaning: »make cleanall« - Remove all build files."
+	@echo "-- Docs:     »make docs      - Build the html and the tex documentation."
 	@echo "----------------------------------------------------------------------------------"
 
 docs: 
