@@ -3,20 +3,12 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      13.09.2021
-# Last edit: 25.12.2021
+# Last edit: 30.12.2021
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # ------------------------------------------------------------------------------
-trgt_vrsn="v2.0.0"
 bin_name="xtom"
 long_name="X to Meta Converter"
-# ------------------------------------------------------------------------------
-ifeq ($(PROVIDES_GIT),YES)
-# Get git hash https://jblevins.org/log/vc
-	rev = $(shell git rev-parse HEAD)
-else
-	rev = NO_GIT_REPOSITORY
-endif
 # -----------------------------------------------------------------------------
 # Check for environment
 check-env:
@@ -43,6 +35,7 @@ st_path= $(build_path)/central_src/
 #
 st_obj_dir = $(st_path)/obj/
 st_mod_dir = $(st_path)/mod/
+st_f-src_dir = $(st_path)/f-src/
 #
 mod_dir   = $(build_path)/mod/
 obj_dir   = $(build_path)/obj/
@@ -129,15 +122,27 @@ $(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(st_mod_dir)raw
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)x_to_meta$(f90_ext) -o $@
 	@echo
 
+# --------------------------------------------------------------------------------------------------
+# Export revision
+export_revision:
+# ifeq ($(PROVIDES_GIT),YES)
+# # Get git hash https://jblevins.org/log/vc
+# 	rev = $(shell git describe --tags --always)
+# 	trgt_vrsn = $(shell git describe --tags --abbrev=0)
+# else
+# 	rev = not_available
+# 	trgt_vrsn = not_available
+# endif
+# 	@echo "----------------------------------------------------------------------------------"
+# 	@echo '-- Write revision and git info'
+# 	@echo "CHARACTER(LEN=*), PARAMETER :: longname = '$(long_name)'" > $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+# 	@echo "CHARACTER(LEN=*), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+# 	@echo "CHARACTER(LEN=*), PARAMETER :: hash = '$(rev)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+
 
 # -----------------------------------------------------------------------------
 # Final Link step of MAIN
-$(main_bin):$(f-objects)
-	@echo "----------------------------------------------------------------------------------"
-	@echo '-- Write revision and git info'
-	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
+$(main_bin): export_revision $(f-objects)
 	@echo "----------------------------------------------------------------------------------"
 	@echo '-- Final link step of $(long_name) executable'
 	@echo "----------------------------------------------------------------------------------"
