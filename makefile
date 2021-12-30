@@ -9,6 +9,17 @@
 # ------------------------------------------------------------------------------
 bin_name="xtom"
 long_name="X to Meta Converter"
+# ------------------------------------------------------------------------------
+ifeq ($(PROVIDES_GIT),YES)
+# Get git hash https://jblevins.org/log/vc
+# rev = $(shell git describe --tags --always)
+	rev = $(shell git rev-parse HEAD)
+	trgt_vrsn = $(shell git describe --tags --abbrev=0)
+else
+	rev = NO_GIT_REPOSITORY
+	trgt_vrsn = ""
+
+endif
 # -----------------------------------------------------------------------------
 # Check for environment
 check-env:
@@ -125,19 +136,12 @@ $(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(st_mod_dir)raw
 # --------------------------------------------------------------------------------------------------
 # Export revision
 export_revision:
-# ifeq ($(PROVIDES_GIT),YES)
-# # Get git hash https://jblevins.org/log/vc
-# 	rev = $(shell git describe --tags --always)
-# 	trgt_vrsn = $(shell git describe --tags --abbrev=0)
-# else
-# 	rev = not_available
-# 	trgt_vrsn = not_available
-# endif
-# 	@echo "----------------------------------------------------------------------------------"
-# 	@echo '-- Write revision and git info'
-# 	@echo "CHARACTER(LEN=*), PARAMETER :: longname = '$(long_name)'" > $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
-# 	@echo "CHARACTER(LEN=*), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
-# 	@echo "CHARACTER(LEN=*), PARAMETER :: hash = '$(rev)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "----------------------------------------------------------------------------------"
+	@echo '-- Write revision and git info'
+	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "----------------------------------------------------------------------------------"
 
 
 # -----------------------------------------------------------------------------
