@@ -62,7 +62,7 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     std_out = determine_stout()
 
-    CALL show_title(longname, revision)
+    CALL show_title()
 
     CALL GET_COMMAND_ARGUMENT(0, binary)
     CALL GET_COMMAND_ARGUMENT(1, filename)
@@ -105,7 +105,6 @@ IF (my_rank==0) THEN
     WRITE(fhmeo, '(A)') "* GENERAL_INFORMATION"
     CALL meta_write (fhmeo, 'CT_SCAN'          , in%dataset)
     CALL meta_write (fhmeo, 'OWNER',             "TBD by user")
-    CALL meta_write (fhmeo, 'DATE_META_CREATED', "TBD by user")
     CALL meta_write (fhmeo, 'OWNER_CONTACT',     "TBD by user")
     CALL meta_write (fhmeo, 'DATE_CREATED',      "TBD by user")
     CALL meta_write (fhmeo, 'INTERNAL_ID',       "TBD by user")
@@ -214,7 +213,7 @@ IF(my_rank == 0) THEN
     WRITE(std_out, FMT_TXT_AF0A) 'Finishing the program took', end-start,'seconds.'
     WRITE(std_out, FMT_TXT_SEP)
 
-    CALL meta_signing(revision, hash, binary)
+    CALL meta_signing(binary)
     CALL meta_close()
 
     IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')

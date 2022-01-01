@@ -1,3 +1,3 @@
 CHARACTER(LEN=scl), PARAMETER :: longname = 'X to Meta Converter'
 CHARACTER(LEN=scl), PARAMETER :: revision = 'v0.1.0'
-CHARACTER(LEN=scl), PARAMETER :: hash = '8064a41484170c8289cd93f5aee1c9170f3ad62b'
+CHARACTER(LEN=scl), PARAMETER :: hash = 'b04a4a48d34a9aa46955f6b272803870ce55439a'
