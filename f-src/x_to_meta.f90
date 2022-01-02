@@ -192,7 +192,7 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Converting and writing binary informatio
 
 SELECT CASE(type_out)
     CASE('ik2') 
-        CALL mpi_write_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik2)
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik2)
     CASE('ik4') 
         SELECT CASE(type_in)
             CASE('rk4') 
@@ -201,7 +201,7 @@ SELECT CASE(type_out)
                 rry_ik4 = INT(rry_rk8, KIND=INT32)
         END SELECT
 
-        CALL mpi_write_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik4)
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik4)
 END SELECT
 
 !------------------------------------------------------------------------------
