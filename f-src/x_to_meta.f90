@@ -117,7 +117,7 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     ! Data always are written as little endian; only vtk requires big endian.
     !------------------------------------------------------------------------------
-    CALL meta_write (fhmeo, 'DATA_BYTE_ORDER'  , "LittleEndian")
+    CALL meta_write (fhmeo, 'DATA_BYTE_ORDER'  , "BigEndian")
     CALL meta_write (fhmeo, 'DIMENSIONALITY'   , '(-)'  , 3)
     CALL meta_write (fhmeo, 'DIMENSIONS'       , '(-)'  , dims)
     CALL meta_write (fhmeo, 'NO_SCALAR_CMPNNTS', '(-)'  , 1)
