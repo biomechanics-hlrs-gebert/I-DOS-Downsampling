@@ -160,7 +160,7 @@ dims_reduced   = dims - remainder_per_dir
 
 rry_dims  = (dims_reduced / sections)
 
-subarray_origin = (rank_section-1_ik) * (rry_dims) + 1_ik
+subarray_origin = (rank_section-1_ik) * (rry_dims)
 
 ! Add the remainder to the last domains of each dimension
 IF(rank_section(1) == sections(1)) rry_dims(1) = rry_dims(1) + remainder_per_dir(1)
