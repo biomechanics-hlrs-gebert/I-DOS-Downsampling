@@ -107,8 +107,9 @@ END SUBROUTINE get_rank_section
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*)             , INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -118,8 +119,13 @@ INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -159,8 +165,9 @@ END SUBROUTINE mpi_read_raw_ik2
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*)             , INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -170,8 +177,13 @@ INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -243,20 +255,26 @@ END SUBROUTINE uik2_to_ik2
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
+CHARACTER(LEN=*), INTENT(IN) :: filename
 ! MPI_OFFSET_KIND needs ik=8 in this case.
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -297,8 +315,9 @@ END SUBROUTINE mpi_read_raw_rk4
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*)             , INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -308,8 +327,13 @@ REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
 CHARACTER(LEN=scl) :: datarep
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -354,6 +378,7 @@ END SUBROUTINE mpi_read_raw_rk8
 !> @param[in] subarray_dims Voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the subarray
 !> @param[in] subarray Scalar field / Image data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
  SUBROUTINE mpi_write_raw_ik2 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
 ! type = 'int2', 'int4'
@@ -401,6 +426,7 @@ END SUBROUTINE mpi_write_raw_ik2
 !> @param[in] subarray_dims Voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the subarray
 !> @param[in] subarray Scalar field / Image data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
  SUBROUTINE mpi_write_raw_ik4 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
 ! type = 'int2', 'int4'
