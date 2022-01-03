@@ -14,7 +14,7 @@ MODULE meta
 
 IMPLICIT NONE
 
-   INTEGER, PARAMETER :: meta_ik = 4
+   INTEGER, PARAMETER :: meta_ik = 8
    INTEGER, PARAMETER :: meta_rk = 8
    INTEGER, PARAMETER :: meta_mcl = 512
    INTEGER, PARAMETER :: meta_scl = 64
@@ -74,7 +74,6 @@ IMPLICIT NONE
    INTERFACE meta_read
       MODULE PROCEDURE meta_read_C 
       MODULE PROCEDURE meta_read_I0D 
-      MODULE PROCEDURE meta_read_I0D_long
       MODULE PROCEDURE meta_read_I1D
       MODULE PROCEDURE meta_read_R0D
       MODULE PROCEDURE meta_read_R1D
@@ -86,7 +85,6 @@ IMPLICIT NONE
    INTERFACE meta_write
       MODULE PROCEDURE meta_write_C 
       MODULE PROCEDURE meta_write_I0D 
-      MODULE PROCEDURE meta_write_I0D_long
       MODULE PROCEDURE meta_write_R0D 
       MODULE PROCEDURE meta_write_I1D
       MODULE PROCEDURE meta_write_R1D
@@ -301,7 +299,7 @@ SUBROUTINE meta_continue(m_in)
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 
 ! Internal Variables
-INTEGER  (KIND=meta_ik) :: ios
+INTEGER(KIND=meta_ik) :: ios
 
 !------------------------------------------------------------------------------
 ! Alter the meta file name
@@ -428,7 +426,7 @@ END SUBROUTINE meta_start_ascii
 !------------------------------------------------------------------------------  
 SUBROUTINE meta_stop_ascii(fh, suf)
 
-INTEGER  (KIND=meta_ik), INTENT(IN) :: fh
+INTEGER(KIND=meta_ik), INTENT(IN) :: fh
 CHARACTER(LEN=*), INTENT(IN) :: suf
 
 CHARACTER(LEN=meta_mcl) :: temp_f_suf, perm_f_suf
@@ -503,7 +501,7 @@ End function count_lines
 !------------------------------------------------------------------------------  
 SUBROUTINE check_keyword(fh, keyword)
 
-INTEGER  (KIND=meta_ik) :: fh 
+INTEGER(KIND=meta_ik) :: fh 
 CHARACTER(LEN=*)   :: keyword
 CHARACTER(LEN=kcl) :: kywd_lngth
 
@@ -757,37 +755,6 @@ CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
 READ(tokens(3), '(I12)') int_0D 
 
 END SUBROUTINE meta_read_I0D
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: meta_read_I0D_long
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
-!
-!> @brief
-!> Wrapper to parse Keywords with 0D integer data. Specific version to deal 
-!> with numbers greater than INT32 can deal with.
-! 
-!> @param[in] fh File handle to read a keyword from.
-!> @param[in] keyword Keyword to read
-!> @param[in] m_in Array of lines of ascii meta file
-!> @param[in] int_0D Datatype to read in
-!------------------------------------------------------------------------------
-SUBROUTINE meta_read_I0D_long (fh, keyword, m_in, int_0D)
-     
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
-CHARACTER(LEN=*), INTENT(IN) :: keyword
-CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
-INTEGER(KIND=INT64), INTENT(OUT) :: int_0D 
-
-! Internal variables
-CHARACTER(LEN=meta_mcl) :: tokens(30)
-INTEGER(KIND=meta_ik) :: ntokens
-
-CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
-
-READ(tokens(3), '(I12)') int_0D 
-
-END SUBROUTINE meta_read_I0D_long
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_R0D
@@ -1073,38 +1040,10 @@ CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_I0D
 
-!------------------------------------------------------------------------------
-! SUBROUTINE: meta_write_I0D_long
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
-!
-!> @brief
-!> Module to write keywords of type integer dim 0. Specific version to 
-!> deal with numbers greater than INT32 can deal with.
-!
-!> @param[in] fh File handle to write a log/mon or text to.
-!> @param[in] keyword Keyword to write
-!> @param[in] unit Unit of the value
-!> @param[in] int_0D Datatype to read in
-!------------------------------------------------------------------------------
-SUBROUTINE meta_write_I0D_long (fh, keyword, unit, int_0D)
-   
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
-CHARACTER(LEN=*), INTENT(IN) :: keyword
-CHARACTER(LEN=*), INTENT(IN) :: unit
-INTEGER(KIND=INT64), INTENT(IN) :: int_0D 
-
-CHARACTER(LEN=meta_scl) :: stdspcfill
-
-WRITE(stdspcfill, '(I0)') int_0D
-
-CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
-
-END SUBROUTINE meta_write_I0D_long
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_R0D
-!------------------------------------------------------------------------------  
+!------------------------------------------------------------------------------
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief

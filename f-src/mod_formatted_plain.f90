@@ -44,9 +44,9 @@ CONTAINS
 !> @param[in] unit Physical unit of the information to print
 !> @param[in] mat Actual matrix
 !------------------------------------------------------------------------------
-SUBROUTINE write_matrix_real (fh, name, fmt, unit, mat)
+SUBROUTINE write_matrix_real(fh, name, fmt, unit, mat)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh   
+INTEGER(KIND=INT64), INTENT(IN) :: fh   
 CHARACTER(LEN=*), INTENT(IN) :: name 
 REAL   (KIND=rk), DIMENSION(:, :), INTENT(IN) :: mat    
 CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: fmt 
@@ -78,7 +78,7 @@ IF (PRESENT(unit)) THEN
 END IF
 
 IF (dim1 == dim2) THEN
-    CALL check_sym(fh, mat, name, sym_out=sym_out)
+    CALL check_sym(INT(fh, KIND=ik), mat, name, sym_out=sym_out)
     sym_u = .TRUE.
 END IF
 
@@ -183,11 +183,11 @@ End Subroutine write_matrix_real
 !> @param[in] unit Physical unit of the information to print
 !> @param[in] mat Actual matrix
 !------------------------------------------------------------------------------
-SUBROUTINE write_matrix_int (fh, name, fmt, unit, mat)
+SUBROUTINE write_matrix_int(fh, name, fmt, unit, mat)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh   
+INTEGER(KIND=INT64), INTENT(IN) :: fh   
 CHARACTER(LEN=*), INTENT(IN) :: name 
-INTEGER(KIND=ik), DIMENSION(:, :), INTENT(IN) :: mat    
+INTEGER(KIND=INT64), DIMENSION(:, :), INTENT(IN) :: mat    
 CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: fmt 
 CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: unit 
 
@@ -214,7 +214,8 @@ IF (PRESENT(unit)) THEN
 END IF
 
 IF (dim1 == dim2) THEN
-    CALL check_sym(fh, REAL(mat, KIND=rk), name, sym_out=sym_out)
+    ! ik for file handle required to support different standard iks.
+    CALL check_sym(INT(fh, KIND=ik), REAL(mat, KIND=rk), name, sym_out=sym_out)
     sym_u = .TRUE.
 END IF
 
@@ -272,6 +273,7 @@ END DO
 
 WRITE(fh, '(A)') ''
 End Subroutine write_matrix_int
+
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: underscore_to_blank

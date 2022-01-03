@@ -9,7 +9,7 @@
 # Last edit: 03.01.2022
 # -----------------------------------------------------------------------------
 # MPI environment
-mpi_prefix=/opt/mpi/openmpi-NO_F08-4.1.0
+mpi_prefix=/opt/mpi/openmpi-No-F08-I8-4.1.2
 export PATH=${mpi_prefix}/bin:$PATH
 export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
 # -----------------------------------------------------------------------------

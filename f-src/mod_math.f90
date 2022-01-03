@@ -8,12 +8,12 @@
 !------------------------------------------------------------------------------
 MODULE math
 
+USE ISO_FORTRAN_ENV
 USE global_std
 USE strings
 
 IMPLICIT NONE
-
-REAL(KIND=rk), PARAMETER :: is_zero    = 1.E-9_rk
+REAL(KIND=rk), PARAMETER :: num_zero   = 1.E-9
 REAL(KIND=rk), PARAMETER :: sq2        = sqrt(2._rk)
 REAL(KIND=rk), PARAMETER :: pi         = 4.D0*DATAN(1.D0) !acos(-1._rk)
 REAL(KIND=rk), PARAMETER :: inv180     = 1._rk/180._rk
@@ -176,11 +176,11 @@ End Function tra_R6
 !------------------------------------------------------------------------------  
 SUBROUTINE check_sym(fh, mi, name, mo, sym_out)
 
-INTEGER(KIND=ik),                 INTENT(IN) :: fh
-REAL(KIND=rk),    DIMENSION(:,:), INTENT(IN) :: mi
-CHARACTER(LEN=*),                 INTENT(IN) , OPTIONAL :: name
-REAL(KIND=rk)   , DIMENSION(:,:), INTENT(OUT), OPTIONAL :: mo
-REAL(KIND=rk)                   , INTENT(OUT), OPTIONAL :: sym_out
+INTEGER(KIND=ik),              INTENT(IN) :: fh
+REAL(KIND=rk), DIMENSION(:,:), INTENT(IN) :: mi
+CHARACTER(LEN=*),              INTENT(IN) , OPTIONAL :: name
+REAL(KIND=rk), DIMENSION(:,:), INTENT(OUT), OPTIONAL :: mo
+REAL(KIND=rk)                , INTENT(OUT), OPTIONAL :: sym_out
 
 REAL(KIND=rk), DIMENSION(:,:), ALLOCATABLE :: mat 
 REAL(KIND=rk) :: sym 
@@ -211,6 +211,7 @@ IF(PRESENT(sym_out)) sym_out = sym
 
 !------------------------------------------------------------------------------
 ! Write matrix out with zeros to show check_sym
+! q counts the rows/columns to suppress a half of the matrix
 !------------------------------------------------------------------------------
 mat = mi
 IF(sym <= 10E-06) THEN
@@ -239,6 +240,8 @@ WRITE(fh, '(4A)')"-- check_sym",TRIM(name_u),": ", TRIM(ADJUSTL(sym_out_str))
 
 END SUBROUTINE check_sym
 
+
+
 !------------------------------------------------------------------------------
 ! SUBROUTINE: zerothres_num
 !------------------------------------------------------------------------------  
@@ -257,7 +260,7 @@ REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 
 REAL(KIND=rk) :: thres_u
 
-thres_u = 1E-11
+thres_u = num_zero
 IF(PRESENT(thres)) thres_u = thres
 
 IF (num >= 0._rk) THEN
@@ -288,7 +291,7 @@ REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 REAL(KIND=rk) :: thres_u
 INTEGER(KIND=ik) :: ii
 
-thres_u = 1E-11
+thres_u = num_zero
 IF(PRESENT(thres)) thres_u = thres
 
 DO ii=1, SIZE(oneD)
@@ -320,7 +323,7 @@ REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 REAL(KIND=rk) :: thres_u
 INTEGER(KIND=ik) :: ii, jj
 
-thres_u = 1E-11
+thres_u = num_zero
 IF(PRESENT(thres)) thres_u = thres
 
 DO jj=1, SIZE(TwD, 2)
@@ -354,7 +357,7 @@ REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 REAL(KIND=rk) :: thres_u
 INTEGER(KIND=ik) :: ii, jj, kk
 
-thres_u = 1E-11
+thres_u = num_zero
 IF(PRESENT(thres)) thres_u = thres
 
 DO kk=1, SIZE(ThD, 3)
