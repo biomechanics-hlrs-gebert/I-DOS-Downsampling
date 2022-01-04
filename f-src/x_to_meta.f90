@@ -25,7 +25,8 @@ CHARACTER(LEN=scl) :: type_in, type_out, binary
 CHARACTER(LEN=mcl) :: filename=''
 
 INTEGER(KIND=ik) :: hdr
-INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections, rank_section
+INTEGER(KIND=mik), DIMENSION(3) :: sections
+INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, rank_section, sections_ik
 INTEGER(KIND=ik), DIMENSION(3) :: remainder_per_dir, dims_reduced, subarray_origin
 REAL   (KIND=rk), DIMENSION(3) :: spcng, origin
 REAL   (KIND=rk) :: start, end
@@ -134,11 +135,12 @@ END IF ! my_rank==0
 !------------------------------------------------------------------------------
 ! Send required variables
 !------------------------------------------------------------------------------
-CALL MPI_BCAST (type_in    , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (type_out   , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (in%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (hdr        , 1_mik               , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (dims       , 3_mik               , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (type_in     , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (type_out    , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (in%p_n_bsnm , INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (out%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (hdr , 1_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (dims, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 
 !------------------------------------------------------------------------------
 ! Get dimensions for each domain. Every processor reveives its own domain.
@@ -152,20 +154,21 @@ CALL MPI_BCAST (dims       , 3_mik               , MPI_INTEGER, 0_mik, MPI_COMM_
 !------------------------------------------------------------------------------
 sections=0
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
-CALL get_rank_section(my_rank, sections, rank_section)
+CALL get_rank_section(INT(my_rank, KIND=ik), INT(sections, KIND=ik), rank_section)
 
-remainder_per_dir = MODULO(dims, sections)
+sections_ik = INT(sections, KIND=ik)
+remainder_per_dir = MODULO(dims, sections_ik)
 
 dims_reduced   = dims - remainder_per_dir
 
-rry_dims  = (dims_reduced / sections)
+rry_dims  = (dims_reduced / sections_ik)
 
 subarray_origin = (rank_section-1_ik) * (rry_dims)
 
 ! Add the remainder to the last domains of each dimension
-IF(rank_section(1) == sections(1)) rry_dims(1) = rry_dims(1) + remainder_per_dir(1)
-IF(rank_section(2) == sections(2)) rry_dims(2) = rry_dims(2) + remainder_per_dir(2)
-IF(rank_section(3) == sections(3)) rry_dims(3) = rry_dims(3) + remainder_per_dir(3)
+IF(rank_section(1) == sections_ik(1)) rry_dims(1) = rry_dims(1) + remainder_per_dir(1)
+IF(rank_section(2) == sections_ik(2)) rry_dims(2) = rry_dims(2) + remainder_per_dir(2)
+IF(rank_section(3) == sections_ik(3)) rry_dims(3) = rry_dims(3) + remainder_per_dir(3)
 
 !------------------------------------------------------------------------------
 ! Read binary part of the vtk file - basically a *.raw file
