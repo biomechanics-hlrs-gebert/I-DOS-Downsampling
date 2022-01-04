@@ -59,7 +59,7 @@ CONTAINS
 !------------------------------------------------------------------------------  
 SUBROUTINE get_rank_section(domain, sections, rank_section)
   
-INTEGER(KIND=ik)              , INTENT(IN)  :: domain
+INTEGER(KIND=ik), INTENT(IN)  :: domain
 INTEGER(KIND=ik), DIMENSION(3), INTENT(IN)  :: sections
 INTEGER(KIND=ik), DIMENSION(3), INTENT(OUT) :: rank_section
 
@@ -115,13 +115,14 @@ END SUBROUTINE get_rank_section
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
+CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
+INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi
+INTEGER(KIND=ik) :: fh
 CHARACTER(LEN=scl) :: datarep
 LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
@@ -173,13 +174,14 @@ END SUBROUTINE mpi_read_raw_ik2
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
+CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
+INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi
+INTEGER(KIND=ik) :: fh
 CHARACTER(LEN=scl) :: datarep
 LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
@@ -271,7 +273,8 @@ REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
+INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi
+INTEGER(KIND=ik) :: fh
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
@@ -323,13 +326,14 @@ END SUBROUTINE mpi_read_raw_rk4
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
+CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER(KIND=ik) :: ierr, type_subarray, fh, my_rank, size_mpi
+INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi
+INTEGER(KIND=ik) :: fh
 CHARACTER(LEN=scl) :: datarep
 LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
@@ -348,7 +352,7 @@ CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
 CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
-   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, type_subarray,ierr)
+   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, type_subarray, ierr)
 
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
@@ -388,13 +392,14 @@ END SUBROUTINE mpi_read_raw_rk8
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
+CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(IN) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER  (KIND=ik) :: ierr, type_subarray, fh
+INTEGER(KIND=mik)  :: ierr, type_subarray
+INTEGER(KIND=ik)   :: fh
 CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
@@ -436,13 +441,14 @@ END SUBROUTINE mpi_write_raw_ik2
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 
-CHARACTER(LEN=*)             , INTENT(IN) :: filename
+CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(KIND=INT32), DIMENSION (:,:,:), INTENT(IN) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
-INTEGER  (KIND=ik) :: ierr, type_subarray, fh
+INTEGER(KIND=mik)  :: ierr, type_subarray
+INTEGER(KIND=ik)   :: fh
 CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
