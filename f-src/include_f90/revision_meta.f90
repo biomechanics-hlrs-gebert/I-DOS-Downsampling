@@ -1,3 +1,3 @@
 CHARACTER(LEN=scl), PARAMETER :: longname = 'Directly Discretizing Tensor Computation'
-CHARACTER(LEN=scl), PARAMETER :: revision = ''
-CHARACTER(LEN=scl), PARAMETER :: hash = '40cb58fe5d1b066904e8421084c11770383fe041'
+CHARACTER(LEN=scl), PARAMETER :: revision = 'v1.0.0'
+CHARACTER(LEN=scl), PARAMETER :: hash = '9f08faddbf00280aa3dacfe35056be03f9a778ee'
