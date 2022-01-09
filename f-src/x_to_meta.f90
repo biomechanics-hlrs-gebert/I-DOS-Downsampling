@@ -213,7 +213,7 @@ END SELECT
 IF(my_rank == 0) THEN
     CALL CPU_TIME(end)
 
-    WRITE(std_out, FMT_TXT_AF0A) 'Finishing the program took', end-start,'seconds.'
+    WRITE(std_out, FMT_TXT_xAF0) 'Finishing the program took', end-start,'seconds.'
     WRITE(std_out, FMT_TXT_SEP)
 
     CALL meta_signing(binary)
