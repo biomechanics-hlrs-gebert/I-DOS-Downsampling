@@ -215,42 +215,42 @@ End Function tra_R6
 !------------------------------------------------------------------------------  
 SUBROUTINE check_sym(matin, sym)
 
-REAL(KIND=rk), DIMENSION(:,:), INTENT(IN)  :: matin
-REAL(KIND=rk)                , INTENT(OUT) :: sym
+    REAL(KIND=rk), DIMENSION(:,:), INTENT(IN)  :: matin
+    REAL(KIND=rk)                , INTENT(OUT) :: sym
 
-! INTEGER, DIMENSION(2) :: lb, ub
-INTEGER(KIND=ik) :: ii, jj
-REAL(KIND=rk) :: cummu, entry_counter
+    ! INTEGER, DIMENSION(2) :: lb, ub
+    INTEGER(KIND=ik) :: ii, jj
+    REAL(KIND=rk) :: cummu, entry_counter
 
-!------------------------------------------------------------------------------
-! Calculate the differences to get the information of symmetry
-! Earlier version...
-!------------------------------------------------------------------------------
+    !------------------------------------------------------------------------------
+    ! Calculate the differences to get the information of symmetry
+    ! Earlier version...
+    !------------------------------------------------------------------------------
 
-cummu = 0._rk
-ii=1_ik
-entry_counter = 0._rk
-DO WHILE (ii < SIZE(matin, DIM=1))
- 
-    jj=2_ik
-    DO WHILE (jj <= SIZE(matin, DIM=2))
-        cummu = cummu + (matin(ii,jj) /  matin(jj,ii))  
+    cummu = 0._rk
+    ii=1_ik
+    entry_counter = 0._rk
+    DO WHILE (ii < SIZE(matin, DIM=1))
+    
+        jj=2_ik
+        DO WHILE (jj <= SIZE(matin, DIM=2))
+            cummu = cummu + (matin(ii,jj) /  matin(jj,ii))  
 
-        !------------------------------------------------------------------------------
-        ! How many entries are averaged?
-        !------------------------------------------------------------------------------
-        entry_counter = entry_counter + 1._rk     
+            !------------------------------------------------------------------------------
+            ! How many entries are averaged?
+            !------------------------------------------------------------------------------
+            entry_counter = entry_counter + 1._rk     
 
-        jj = jj + 1_ik
+            jj = jj + 1_ik
+        END DO
+
+        ii = ii + 1_ik
     END DO
 
-    ii = ii + 1_ik
-END DO
-
-!------------------------------------------------------------------------------
-! 1 - sym quotient to compare to 0
-!------------------------------------------------------------------------------
-sym = 1._rk - (cummu / entry_counter)
+    !------------------------------------------------------------------------------
+    ! 1 - sym quotient to compare to 0
+    !------------------------------------------------------------------------------
+    sym = 1._rk - (cummu / entry_counter)
 
 END SUBROUTINE check_sym
 
@@ -269,19 +269,19 @@ END SUBROUTINE check_sym
 !------------------------------------------------------------------------------ 
 SUBROUTINE zerothres_num(num, thres)
 
-REAL(KIND=rk), INTENT(INOUT) :: num 
-REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
+    REAL(KIND=rk), INTENT(INOUT) :: num 
+    REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 
-REAL(KIND=rk) :: thres_u
+    REAL(KIND=rk) :: thres_u
 
-thres_u = num_zero
-IF(PRESENT(thres)) thres_u = thres
+    thres_u = num_zero
+    IF(PRESENT(thres)) thres_u = thres
 
-IF (num >= 0._rk) THEN
-    IF (num <=  thres_u) num = 0._rk
-ELSE
-    IF (num >= -thres_u) num = 0._rk
-END IF
+    IF (num >= 0._rk) THEN
+        IF (num <=  thres_u) num = 0._rk
+    ELSE
+        IF (num >= -thres_u) num = 0._rk
+    END IF
 
 END SUBROUTINE zerothres_num
 
@@ -299,22 +299,22 @@ END SUBROUTINE zerothres_num
 !------------------------------------------------------------------------------ 
 SUBROUTINE zerothres_OnD(oneD, thres)
 
-REAL(KIND=rk), DIMENSION(:), INTENT(INOUT) :: oneD 
-REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
+    REAL(KIND=rk), DIMENSION(:), INTENT(INOUT) :: oneD 
+    REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 
-REAL(KIND=rk) :: thres_u
-INTEGER(KIND=ik) :: ii
+    REAL(KIND=rk) :: thres_u
+    INTEGER(KIND=ik) :: ii
 
-thres_u = num_zero
-IF(PRESENT(thres)) thres_u = thres
+    thres_u = num_zero
+    IF(PRESENT(thres)) thres_u = thres
 
-DO ii=1, SIZE(oneD)
-    IF (oneD(ii) >= 0._rk) THEN
-        IF (oneD(ii) <=  thres_u) oneD(ii) = 0._rk
-    ELSE
-        IF (oneD(ii) >= -thres_u) oneD(ii) = 0._rk
-    END IF
-END DO
+    DO ii=1, SIZE(oneD)
+        IF (oneD(ii) >= 0._rk) THEN
+            IF (oneD(ii) <=  thres_u) oneD(ii) = 0._rk
+        ELSE
+            IF (oneD(ii) >= -thres_u) oneD(ii) = 0._rk
+        END IF
+    END DO
 END SUBROUTINE zerothres_OnD
 
 
@@ -331,24 +331,24 @@ END SUBROUTINE zerothres_OnD
 !------------------------------------------------------------------------------ 
 SUBROUTINE zerothres_TwD(TwD, thres)
 
-REAL(KIND=rk), DIMENSION(:,:), INTENT(INOUT) :: TwD 
-REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
+    REAL(KIND=rk), DIMENSION(:,:), INTENT(INOUT) :: TwD 
+    REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 
-REAL(KIND=rk) :: thres_u
-INTEGER(KIND=ik) :: ii, jj
+    REAL(KIND=rk) :: thres_u
+    INTEGER(KIND=ik) :: ii, jj
 
-thres_u = num_zero
-IF(PRESENT(thres)) thres_u = thres
+    thres_u = num_zero
+    IF(PRESENT(thres)) thres_u = thres
 
-DO jj=1, SIZE(TwD, 2)
-DO ii=1, SIZE(TwD, 1)
-    IF (TwD(ii, jj) >= 0._rk) THEN
-        IF (TwD(ii, jj) <=  thres_u) TwD(ii, jj) = 0._rk
-    ELSE
-        IF (TwD(ii, jj) >= -thres_u) TwD(ii, jj) = 0._rk
-    END IF
-END DO
-END DO
+    DO jj=1, SIZE(TwD, 2)
+    DO ii=1, SIZE(TwD, 1)
+        IF (TwD(ii, jj) >= 0._rk) THEN
+            IF (TwD(ii, jj) <=  thres_u) TwD(ii, jj) = 0._rk
+        ELSE
+            IF (TwD(ii, jj) >= -thres_u) TwD(ii, jj) = 0._rk
+        END IF
+    END DO
+    END DO
 END SUBROUTINE zerothres_TwD
 
 
@@ -365,26 +365,26 @@ END SUBROUTINE zerothres_TwD
 !------------------------------------------------------------------------------ 
 SUBROUTINE zerothres_ThD(ThD, thres)
 
-REAL(KIND=rk), DIMENSION(:, :, :), INTENT(INOUT) :: ThD 
-REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
+    REAL(KIND=rk), DIMENSION(:, :, :), INTENT(INOUT) :: ThD 
+    REAL(KIND=rk), INTENT(IN), OPTIONAL :: thres
 
-REAL(KIND=rk) :: thres_u
-INTEGER(KIND=ik) :: ii, jj, kk
+    REAL(KIND=rk) :: thres_u
+    INTEGER(KIND=ik) :: ii, jj, kk
 
-thres_u = num_zero
-IF(PRESENT(thres)) thres_u = thres
+    thres_u = num_zero
+    IF(PRESENT(thres)) thres_u = thres
 
-DO kk=1, SIZE(ThD, 3)
-DO jj=1, SIZE(ThD, 2)
-DO ii=1, SIZE(ThD, 1)
-    IF (ThD(ii, jj, kk) >= 0._rk) THEN
-        IF (ThD(ii, jj, kk) <=  thres_u) ThD(ii, jj, kk) = 0._rk
-    ELSE
-        IF (ThD(ii, jj, kk) >= -thres_u) ThD(ii, jj, kk) = 0._rk
-    END IF
-END DO
-END DO
-END DO
+    DO kk=1, SIZE(ThD, 3)
+    DO jj=1, SIZE(ThD, 2)
+    DO ii=1, SIZE(ThD, 1)
+        IF (ThD(ii, jj, kk) >= 0._rk) THEN
+            IF (ThD(ii, jj, kk) <=  thres_u) ThD(ii, jj, kk) = 0._rk
+        ELSE
+            IF (ThD(ii, jj, kk) >= -thres_u) ThD(ii, jj, kk) = 0._rk
+        END IF
+    END DO
+    END DO
+    END DO
 END SUBROUTINE zerothres_ThD
 
 !------------------------------------------------------------------------------
@@ -403,26 +403,26 @@ END SUBROUTINE zerothres_ThD
 !> @param[in] euler_radians Euler radians
 !> @return eul_2_un_quat Unit Quaternion
 !------------------------------------------------------------------------------  
-FUNCTION eul_2_un_quat (euler_radians) return(eul_2_un_quat)
+FUNCTION eul_2_un_quat (euler_radians)
 
-REAL (KIND=rk) , DIMENSION(3) :: euler_radians
-TYPE(Quaternion) :: eul_2_un_quat
+    REAL (KIND=rk) , DIMENSION(3) :: euler_radians
+    TYPE(Quaternion) :: eul_2_un_quat
 
-REAL (KIND=rk) :: ca, cb, cg, sa, sb, sg
+    REAL (KIND=rk) :: ca, cb, cg, sa, sb, sg
 
-euler_radians = euler_radians * 0.5_rk ! angle/2 to get a quaternion!
+    euler_radians = euler_radians * 0.5_rk ! angle/2 to get a quaternion!
 
-ca = COS(euler_radians(1))
-sa = SIN(euler_radians(1))
-cb = COS(euler_radians(2))
-sb = SIN(euler_radians(2))
-cg = COS(euler_radians(3))
-sg = SIN(euler_radians(3))
+    ca = COS(euler_radians(1))
+    sa = SIN(euler_radians(1))
+    cb = COS(euler_radians(2))
+    sb = SIN(euler_radians(2))
+    cg = COS(euler_radians(3))
+    sg = SIN(euler_radians(3))
 
-eul_2_un_quat%w = ca * cb * cg + sa * sb * sg
-eul_2_un_quat%x = sa * cb * cg - ca * sb * sg
-eul_2_un_quat%y = ca * sb * cg + sa * cb * sg
-eul_2_un_quat%z = ca * cb * sg - sa * sb * cg
+    eul_2_un_quat%w = ca * cb * cg + sa * sb * sg
+    eul_2_un_quat%x = sa * cb * cg - ca * sb * sg
+    eul_2_un_quat%y = ca * sb * cg + sa * cb * sg
+    eul_2_un_quat%z = ca * cb * sg - sa * sb * cg
 
 END FUNCTION eul_2_un_quat
 
@@ -437,20 +437,20 @@ END FUNCTION eul_2_un_quat
 !> @param[in] quat Quaternion
 !> @return check_un_quat True or false
 !------------------------------------------------------------------------------  
-FUNCTION check_un_quat (quat) return(check_un_quat)
+FUNCTION check_un_quat (quat)
 
-TYPE(Quaternion) :: quat
-LOGICAL :: check_un_quat
+    TYPE(Quaternion) :: quat
+    LOGICAL :: check_un_quat
 
-REAL(KIND=rk) :: rslt
+    REAL(KIND=rk) :: rslt
 
-rslt = quat%w**2 + quat%x**2 + quat%y**2 + quat%z**2
+    rslt = quat%w**2 + quat%x**2 + quat%y**2 + quat%z**2
 
-IF (rslt-1_rk <= is_zero) THEN
-check_un_quat = .TRUE.
-ELSE
-check_un_quat = .FALSE.
-END IF
+    IF (rslt-1_rk <= num_zero) THEN
+        check_un_quat = .TRUE.
+    ELSE
+        check_un_quat = .FALSE.
+    END IF
 
 END FUNCTION check_un_quat
 
@@ -465,12 +465,12 @@ END FUNCTION check_un_quat
 !> @param[in] quat Quaternion
 !> @return quat_norm Norm of the quaternion
 !------------------------------------------------------------------------------  
-FUNCTION quat_norm (quat) return(quat_norm)
+FUNCTION quat_norm (quat)
 
-TYPE(Quaternion) :: quat
-REAL(KIND=rk) :: quat_norm
+    TYPE(Quaternion) :: quat
+    REAL(KIND=rk) :: quat_norm
 
-quat_norm = quat%w**2 + quat%x**2 + quat%y**2 + quat%z**2
+    quat_norm = quat%w**2 + quat%x**2 + quat%y**2 + quat%z**2
 
 END FUNCTION quat_norm
 
@@ -486,15 +486,15 @@ END FUNCTION quat_norm
 !> @param[in] scalar Scalar
 !> @return q_add Result of the addition
 !------------------------------------------------------------------------------  
-FUNCTION q_add(q1, scalar) return(q_add)
+FUNCTION q_add(q1, scalar)
 
-TYPE(Quaternion) :: q1, q_add
-REAL(KIND=rk) :: scalar
+    TYPE(Quaternion) :: q1, q_add
+    REAL(KIND=rk) :: scalar
 
-q_add%w = q1%w + scalar
-q_add%x = q1%x + scalar
-q_add%y = q1%y + scalar
-q_add%z = q1%z + scalar
+    q_add%w = q1%w + scalar
+    q_add%x = q1%x + scalar
+    q_add%y = q1%y + scalar
+    q_add%z = q1%z + scalar
 
 END FUNCTION q_add
 
@@ -510,15 +510,15 @@ END FUNCTION q_add
 !> @param[in] scalar Scalar
 !> @return q_add Result of the multiplication
 !------------------------------------------------------------------------------  
-FUNCTION q_mult (q1, scalar) return(q_mult)
+FUNCTION q_mult (q1, scalar)
 
-TYPE(Quaternion) :: q1, q_mult
-REAL(KIND=rk) :: scalar
+    TYPE(Quaternion) :: q1, q_mult
+    REAL(KIND=rk) :: scalar
 
-q_mult%w = q1%w * scalar
-q_mult%x = q1%x * scalar
-q_mult%y = q1%y * scalar
-q_mult%z = q1%z * scalar
+    q_mult%w = q1%w * scalar
+    q_mult%x = q1%x * scalar
+    q_mult%y = q1%y * scalar
+    q_mult%z = q1%z * scalar
 
 END FUNCTION q_mult
 
@@ -534,15 +534,15 @@ END FUNCTION q_mult
 !> @param[in] scalar Scalar
 !> @return q_add Result of the division
 !------------------------------------------------------------------------------ 
-FUNCTION q_dvd (q1, scalar) return(q_dvd)
+FUNCTION q_dvd (q1, scalar)
 
-TYPE(Quaternion) :: q1, q_dvd
-REAL(KIND=rk) :: scalar
- 
-q_dvd%w = q1%w / scalar
-q_dvd%x = q1%x / scalar
-q_dvd%y = q1%y / scalar
-q_dvd%z = q1%z / scalar
+    TYPE(Quaternion) :: q1, q_dvd
+    REAL(KIND=rk) :: scalar
+    
+    q_dvd%w = q1%w / scalar
+    q_dvd%x = q1%x / scalar
+    q_dvd%y = q1%y / scalar
+    q_dvd%z = q1%z / scalar
 
 END FUNCTION q_dvd
 
@@ -558,14 +558,14 @@ END FUNCTION q_dvd
 !> @param[in] q2 Quaternion
 !> @return quat_prod Result of the quaternion multiplication
 !------------------------------------------------------------------------------ 
-FUNCTION quat_prod (q1, q2) return(quat_prod)
+FUNCTION quat_prod (q1, q2)
 
-TYPE(Quaternion) :: q1, q2, quat_prod
+    TYPE(Quaternion) :: q1, q2, quat_prod
 
-quat_prod%w = q1%w*q2%w-q1%x*q2%x-q1%y*q2%y-q1%z*q2%z
-quat_prod%x = q1%w*q2%x+q1%x*q2%w+q1%y*q2%z-q1%z*q2%y
-quat_prod%y = q1%w*q2%y-q1%x*q2%z+q1%y*q2%w+q1%z*q2%x
-quat_prod%z = q1%w*q2%z+q1%x*q2%y-q1%y*q2%x+q1%z*q2%w
+    quat_prod%w = q1%w*q2%w-q1%x*q2%x-q1%y*q2%y-q1%z*q2%z
+    quat_prod%x = q1%w*q2%x+q1%x*q2%w+q1%y*q2%z-q1%z*q2%y
+    quat_prod%y = q1%w*q2%y-q1%x*q2%z+q1%y*q2%w+q1%z*q2%x
+    quat_prod%z = q1%w*q2%z+q1%x*q2%y-q1%y*q2%x+q1%z*q2%w
 
 END FUNCTION quat_prod
 
@@ -580,14 +580,14 @@ END FUNCTION quat_prod
 !> @param[in] quat Quaternion
 !> @return conjugate_quat Conjugate quaternion
 !------------------------------------------------------------------------------ 
-FUNCTION conjugate_quat(quat) return(conjugate_quat)
+FUNCTION conjugate_quat(quat)
 
-TYPE(Quaternion) :: quat, conjugate_quat
+    TYPE(Quaternion) :: quat, conjugate_quat
 
-conjugate_quat%w =   quat%w
-conjugate_quat%x = - quat%x
-conjugate_quat%y = - quat%y
-conjugate_quat%z = - quat%z
+    conjugate_quat%w =   quat%w
+    conjugate_quat%x = - quat%x
+    conjugate_quat%y = - quat%y
+    conjugate_quat%z = - quat%z
 
 END FUNCTION conjugate_quat
 
@@ -603,23 +603,23 @@ END FUNCTION conjugate_quat
 !> @param[in] point Point to rotate with quaternion.
 !> @return rotate_point Rotated point.
 !------------------------------------------------------------------------------
-FUNCTION rotate_point(quat, point) return(rotate_point)
+FUNCTION rotate_point(quat, point)
 
-TYPE(Quaternion) :: quat
-REAL(KIND=rk), DIMENSION(3) :: point, rotate_point
+    TYPE(Quaternion) :: quat
+    REAL(KIND=rk), DIMENSION(3) :: point, rotate_point
 
-TYPE(Quaternion) :: pnt, rtt_pnt
+    TYPE(Quaternion) :: pnt, rtt_pnt
 
-pnt%w = 0._rk
-pnt%x = point(1)
-pnt%y = point(2)
-pnt%z = point(3)
+    pnt%w = 0._rk
+    pnt%x = point(1)
+    pnt%y = point(2)
+    pnt%z = point(3)
 
-rtt_pnt = quat_prod(quat_prod(quat, pnt), conjugate_quat(quat))
+    rtt_pnt = quat_prod(quat_prod(quat, pnt), conjugate_quat(quat))
 
-rotate_point(1) = rtt_pnt%x
-rotate_point(2) = rtt_pnt%y
-rotate_point(3) = rtt_pnt%z
+    rotate_point(1) = rtt_pnt%x
+    rotate_point(2) = rtt_pnt%y
+    rotate_point(3) = rtt_pnt%z
 
 END FUNCTION rotate_point
 
@@ -635,14 +635,17 @@ END FUNCTION rotate_point
 !> @param[in] q Quaternion
 !> @return quat_2_rot_mat Rotation matrix
 !------------------------------------------------------------------------------
-FUNCTION quat_2_rot_mat(q) return(quat_2_rot_mat)
+FUNCTION quat_2_rot_mat(q)
 
-TYPE(Quaternion) :: q
-REAL(KIND=rk), DIMENSION(3,3) :: quat_2_rot_mat
+    TYPE(Quaternion) :: q
+    REAL(KIND=rk), DIMENSION(3,3) :: quat_2_rot_mat
 
-quat_2_rot_mat(1,:) = [ q%w**2 + q%x**2 - q%y**2 - q%z**2  , 2._rk*q%x*q%y - 2._rk*q%w*q%z , 2._rk*q%x*q%z - 2._rk*q%w*q%y  ]
-quat_2_rot_mat(2,:) = [ 2._rk*q%x*q%y + 2._rk*q%w*q%z , q%w**2 - q%x**2 + q%y**2 + - q%z**2 , 2._rk*q%y*q%z - 2._rk*q%w*q%x ]
-quat_2_rot_mat(3,:) = [ 2._rk*q%x*q%z - 2._rk*q%w*q%y , 2._rk*q%y*q%z + 2._rk*q%w*q%x , q%w**2 - q%x**2 - q%y**2 + q%z**2   ]
+    quat_2_rot_mat(1,:) = [ q%w**2 + q%x**2 - q%y**2 - q%z**2  , &
+        2._rk*q%x*q%y - 2._rk*q%w*q%z , 2._rk*q%x*q%z - 2._rk*q%w*q%y  ]
+    quat_2_rot_mat(2,:) = [ 2._rk*q%x*q%y + 2._rk*q%w*q%z , &
+        q%w**2 - q%x**2 + q%y**2 + - q%z**2 , 2._rk*q%y*q%z - 2._rk*q%w*q%x ]
+    quat_2_rot_mat(3,:) = [ 2._rk*q%x*q%z - 2._rk*q%w*q%y , &
+        2._rk*q%y*q%z + 2._rk*q%w*q%x , q%w**2 - q%x**2 - q%y**2 + q%z**2   ]
 
 END FUNCTION quat_2_rot_mat
 
@@ -659,13 +662,13 @@ END FUNCTION quat_2_rot_mat
 !> @param[in] b Vector
 !> @return crpr Cross product
 !------------------------------------------------------------------------------
-FUNCTION crpr(a, b) return(crpr)
+FUNCTION crpr(a, b)
 
-REAL(KIND=rk), DIMENSION(3) :: crpr,a,b
+    REAL(KIND=rk), DIMENSION(3) :: crpr,a,b
 
-crpr(1) = a(2) * b(3) - a(3) * b(2)
-crpr(2) = a(3) * b(1) - a(1) * b(3)
-crpr(3) = a(1) * b(2) - a(2) * b(1)
+    crpr(1) = a(2) * b(3) - a(3) * b(2)
+    crpr(2) = a(3) * b(1) - a(1) * b(3)
+    crpr(3) = a(1) * b(2) - a(2) * b(1)
 
 END FUNCTION crpr
 
