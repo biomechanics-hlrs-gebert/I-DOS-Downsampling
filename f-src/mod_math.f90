@@ -22,9 +22,9 @@ REAL(KIND=rk), PARAMETER :: inv180     = 1._rk/180._rk
 REAL(KIND=rk), PARAMETER :: pi_div_180 = acos(-1._rk)/180._rk   ! * deg = rad
 
 !-- Higher dimensional numbers
-TYPE Quaternion
+TYPE quaternion
    REAL (KIND=rk) :: w,x,y,z
-END TYPE Quaternion
+END TYPE quaternion
 
 INTERFACE zero_thres
    MODULE PROCEDURE zerothres_num
