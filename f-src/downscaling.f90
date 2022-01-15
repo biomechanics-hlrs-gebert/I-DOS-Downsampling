@@ -1,3 +1,93 @@
+!------------------------------------------------------------------------------
+! MODULE: auxiliaries_of_downscaling
+!------------------------------------------------------------------------------
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+! @Description:
+!> Module containing additional routines for the main program.
+!------------------------------------------------------------------------------
+MODULE auxiliaries_of_downscaling
+
+USE ISO_FORTRAN_ENV
+USE global_std
+USE mechanical
+USE user_interaction
+
+IMPLICIT NONE
+   INTERFACE downscale
+      MODULE PROCEDURE downscale_ik2
+      MODULE PROCEDURE downscale_ik4
+   END INTERFACE downscale
+
+CONTAINS
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: downscale_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Reduce the resolution of a given image by a given integer factor.
+!
+!> @param[in] in_array Input array
+!> @param[in] scale_factor Factor of high resolution voxels to get a mean ave.
+!> @param[out] out_array Output array
+!------------------------------------------------------------------------------  
+SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
+
+    INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(OUT) :: out_array
+    INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: in_array
+    INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: scale_factor
+
+    INTEGER(KIND=ik) :: ii, jj, kk
+
+    DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
+    DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
+    DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
+        out_array = REAL(SUM(in_array(&
+            ii:ii+scale_factor(1)-1_ik, &
+            jj:jj+scale_factor(2)-1_ik, &
+            kk:kk+scale_factor(3)-1_ik)), KIND=rk) / REAL(PRODUCT(scale_factor), KIND=rk)
+    END DO
+    END DO
+    END DO
+END SUBROUTINE downscale_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: downscale_ik4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Reduce the resolution of a given image by a given integer factor.
+!
+!> @param[in] in_array Input array
+!> @param[in] scale_factor Factor of high resolution voxels to get a mean ave.
+!> @param[out] out_array Output array
+!------------------------------------------------------------------------------  
+SUBROUTINE downscale_ik4(in_array, scale_factor, out_array)
+
+    INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(OUT) :: out_array
+    INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: in_array
+    INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: scale_factor
+
+    INTEGER(KIND=ik) :: ii, jj, kk
+
+    DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
+    DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
+    DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
+        out_array = REAL(SUM(in_array(&
+            ii:ii+scale_factor(1)-1_ik, &
+            jj:jj+scale_factor(2)-1_ik, &
+            kk:kk+scale_factor(3)-1_ik)), KIND=rk) / REAL(PRODUCT(scale_factor), KIND=rk)
+    END DO
+    END DO
+    END DO
+END SUBROUTINE downscale_ik4
+
+END MODULE auxiliaries_of_downscaling
+
+
 !--------------------------------------------------------------------
 !> Downscaling
 !
@@ -13,7 +103,7 @@ USE user_interaction
 USE meta
 USE MPI
 USE raw_binary
-
+USE auxiliaries_of_downscaling
 
 IMPLICIT NONE
 
@@ -21,22 +111,22 @@ IMPLICIT NONE
 INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer!!
 
 CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry
-CHARACTER(LEN=scl) :: type, binary, invert, restart, restart_cmd_arg, filename, dmn_no
+CHARACTER(LEN=scl) :: type, binary, restart, restart_cmd_arg
 CHARACTER(LEN=  8) :: date
 CHARACTER(LEN= 10) :: time
 
-INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4
+INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2, rry_out_ik2
+INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4, rry_out_ik4
 INTEGER(KIND=mik), DIMENSION(3) :: sections
 INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections_ik=0, rank_section
-INTEGER(KIND=ik), DIMENSION(3) :: remainder_per_dir, dims_reduced, subarray_origin
-INTEGER(KIND=ik), DIMENSION(2) :: in_lo_hi, out_lo_hi
-INTEGER(KIND=ik) :: img_max, specific_dmn, fh_temp
+INTEGER(KIND=ik), DIMENSION(3) :: subarray_origin, scale_factor
+INTEGER(KIND=ik), DIMENSION(3) :: new_subarray_origin, remainder
+INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_dims, new_glbl_rry_dims, new_dims, lcl_subarray_origin
 
 REAL(KIND=rk) :: start, end
-REAL(KIND=rk), DIMENSION(3) :: rgn_glbl_shft, spcng, origin
+REAL(KIND=rk), DIMENSION(3) :: rgn_glbl_shft, spcng, new_spacing, offset
 
-LOGICAL :: stp, fex
+LOGICAL :: stp
 
 ! MPI variables
 INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
@@ -97,8 +187,8 @@ IF (my_rank==0) THEN
     CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
     CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
 
-    CALL meta_read(std_out, 'TARGET_SPACING', m_rry, type)
-    CALL meta_read(std_out, 'RESTART'       , m_rry, restart)
+    CALL meta_read(std_out, 'SCALE_FACTOR', m_rry, scale_factor)
+    CALL meta_read(std_out, 'RESTART'     , m_rry, restart)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
@@ -120,9 +210,9 @@ CALL MPI_BCAST(rgn_glbl_shft, 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD
 ! Get dimensions for each domain. Every processor reveives its own domain.
 ! Therefore, each my_rank calculates its own address/dimensions/parameters.
 !
-! Calculation of the downscaling directly affects the mpi subarrays (!) 
-!
 ! Allocation of subarray memory is done in the read_raw routines.
+!------------------------------------------------------------------------------
+! Calculation of the downscaling directly affects the mpi subarrays (!) 
 !------------------------------------------------------------------------------
 sections=0
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
@@ -130,22 +220,37 @@ sections_ik = INT(sections, KIND=ik)
 
 CALL get_rank_section(INT(my_rank, KIND=ik), sections_ik, rank_section)
 
-remainder_per_dir = MODULO(dims, sections_ik)
+!------------------------------------------------------------------------------
+! Get new dimensions out of (field of view) / target_spcng
+!------------------------------------------------------------------------------
+new_spacing = spcng * REAL(scale_factor, KIND=rk)
 
-dims_reduced   = dims - remainder_per_dir
+remainder = MODULO(dims, scale_factor)
 
-rry_dims  = (dims_reduced / sections_ik)
+new_dims = dims - remainder
 
-subarray_origin = (rank_section-1_ik) * (rry_dims)
+offset = FLOOR(remainder/2._rk) * new_spacing
 
-! Add the remainder to the last domains of each dimension
-IF(rank_section(1) == sections_ik(1)) rry_dims(1) = rry_dims(1) + remainder_per_dir(1)
-IF(rank_section(2) == sections_ik(2)) rry_dims(2) = rry_dims(2) + remainder_per_dir(2)
-IF(rank_section(3) == sections_ik(3)) rry_dims(3) = rry_dims(3) + remainder_per_dir(3)
+rgn_glbl_shft = rgn_glbl_shft + offset
+
+!------------------------------------------------------------------------------
+! New/target subarray dimensions
+!------------------------------------------------------------------------------
+new_lcl_rry_dims  = (new_dims / sections_ik)
+new_subarray_origin = (rank_section-1_ik) * (rry_dims)
+
+!------------------------------------------------------------------------------
+! MPI specific subarray dimensions with global offset of remainder
+!------------------------------------------------------------------------------
+new_glbl_rry_dims = new_lcl_rry_dims * scale_factor
+lcl_subarray_origin = (rank_section-1_ik) * (new_lcl_rry_dims) + FLOOR(remainder/2._rk, KIND=ik)
+
+!------------------------------------------------------------------------------
+! The remainder is ignored, since the spatial resolution will break with a, 
+! integer based scaling, which deformes the last voxel of dims.
+!------------------------------------------------------------------------------
 
 IF(my_rank == 0) THEN
-    WRITE(std_out, FMT_TXT) 'Reading binary information of *.raw file.'
-
     ! DEBUG INFORMATION
     IF (debug >= 0) THEN 
         CALL DATE_AND_TIME(date, time)
@@ -157,55 +262,55 @@ IF(my_rank == 0) THEN
         WRITE(std_out, FMT_MSG_AxI0) "Processors:", size_mpi  
         WRITE(std_out, FMT_MSG) "Calculation of domain sectioning:"
         WRITE(std_out, FMT_MSG)
+        WRITE(std_out, FMT_MSG_AxI0) "Scale factor: ", scale_factor
         WRITE(std_out, FMT_MSG_AxI0) "sections: ", sections_ik
-        WRITE(std_out, FMT_MSG_AxI0) "dims: ", dims
-        WRITE(std_out, FMT_MSG_AxI0) "dims_reduced: ", dims_reduced
+        WRITE(std_out, FMT_MSG_AxI0) "Input dims: ", dims
+        WRITE(std_out, FMT_MSG_AxI0) "Output dims: ", new_glbl_rry_dims
         WRITE(std_out, FMT_MSG_AxI0) "subarray_origin: ", subarray_origin
         WRITE(std_out, FMT_MSG_SEP)
-        WRITE(std_out, FMT_MSG)     "Binarization:"
-        WRITE(std_out, FMT_MSG_xAI0) "Chosen threshold lo: ", in_lo_hi(1)
-        WRITE(std_out, FMT_MSG_xAI0) "Chosen threshold hi: ", in_lo_hi(2)
-        WRITE(std_out, FMT_MSG)
-        WRITE(std_out, FMT_MSG)     "Export domain number:"
-        WRITE(std_out, FMT_MSG_xAI0) "specific_dmn: ", specific_dmn
-        WRITE(std_out, FMT_MSG_SEP)
         FLUSH(std_out)
+    END IF
+
+    !------------------------------------------------------------------------------  
+    ! Check of dimensions are valid
+    !------------------------------------------------------------------------------  
+    IF ((MODULO(new_lcl_rry_dims(1), scale_factor(1)) /= 0_ik) .OR. &  
+        (MODULO(new_lcl_rry_dims(2), scale_factor(2)) /= 0_ik) .OR. & 
+        (MODULO(new_lcl_rry_dims(3), scale_factor(3)) /= 0_ik)) THEN
+        mssg = "Integer division of local arrays will fail. Check your implementation!"
+        CALL print_err_stop(std_out, mssg, 1_ik)
     END IF
 END IF
 
 !------------------------------------------------------------------------------
 ! Read binary part of the vtk file - basically a *.raw file
+!
+! Allocate memory for the downscaled array/image
 !------------------------------------------------------------------------------
+IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading image.'
+
 SELECT CASE(type)
     CASE('ik2') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik2)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
+            new_lcl_rry_dims, lcl_subarray_origin, rry_ik2)
+
+        ALLOCATE(rry_out_ik2(new_lcl_rry_dims(1), new_lcl_rry_dims(2), new_lcl_rry_dims(3)))
+
     CASE('ik4') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik4)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
+            new_lcl_rry_dims, lcl_subarray_origin, rry_ik4)
+
+        ALLOCATE(rry_out_ik4(new_lcl_rry_dims(1), new_lcl_rry_dims(2), new_lcl_rry_dims(3)))
 END SELECT
 
 !------------------------------------------------------------------------------
-! Initialize array low/high and invert image if requested.
+! Compute downscaling
 !------------------------------------------------------------------------------
-out_lo_hi = [ 0_ik, img_max ]
-IF(invert == 'YES') out_lo_hi = [ img_max, 0_ik ]
-
-IF((debug >= 0) .AND. (my_rank == 0)) THEN
-    WRITE(std_out, FMT_MSG_xAI0) "Input binarize low: ", in_lo_hi(1)
-    WRITE(std_out, FMT_MSG_xAI0) "Input binarize high: ", in_lo_hi(2)
-    WRITE(std_out, FMT_MSG_xAI0) "Output array low: ", out_lo_hi(1)
-    WRITE(std_out, FMT_MSG_xAI0) "Output array high: ", out_lo_hi(2)
-    WRITE(std_out, FMT_MSG_SEP)
-    FLUSH(std_out)
-END IF
-
-!------------------------------------------------------------------------------
-! Compute binarization
-!------------------------------------------------------------------------------
-IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Binarizing image.'
-
+IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Downscaling image.'
+    
 SELECT CASE(type)
-    CASE('ik2'); CALL downscale(rry_ik2, in_lo_hi, out_lo_hi)
-    CASE('ik4'); CALL downscale(rry_ik4, in_lo_hi, out_lo_hi)
+    CASE('ik2'); CALL downscale(rry_ik2, scale_factor, rry_out_ik2)
+    CASE('ik4'); CALL downscale(rry_ik4, scale_factor, rry_out_ik4)
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -215,9 +320,15 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Writing binary information to *.raw file
 
 SELECT CASE(type)
     CASE('ik2') 
-        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik2)
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
+            new_lcl_rry_dims, lcl_subarray_origin, rry_ik2)
+        DEALLOCATE(rry_out_ik2)
+
     CASE('ik4') 
-        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik4)
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
+            new_lcl_rry_dims, lcl_subarray_origin, rry_ik4)
+        DEALLOCATE(rry_out_ik4)
+
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -229,6 +340,10 @@ END SELECT
 ! Finish program
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
+    CALL meta_write(fhmeo, 'DIMENSIONS'   , '(-)', new_glbl_rry_dims)
+    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(-)', new_glbl_rry_dims * new_spacing)
+    CALL meta_write(fhmeo, 'ENTRIES'      , '(-)', PRODUCT(new_glbl_rry_dims))
+
     CALL CPU_TIME(end)
 
     WRITE(std_out, FMT_TXT_xAF0) 'Finishing the program took', end-start,'seconds.'
