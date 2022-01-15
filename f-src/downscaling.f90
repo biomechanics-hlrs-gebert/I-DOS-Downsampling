@@ -44,10 +44,10 @@ SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
     DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
     DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
     DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
-        out_array = REAL(SUM(in_array(&
+        out_array = SUM(in_array(&
             ii:ii+scale_factor(1)-1_ik, &
             jj:jj+scale_factor(2)-1_ik, &
-            kk:kk+scale_factor(3)-1_ik)), KIND=rk) / REAL(PRODUCT(scale_factor), KIND=rk)
+            kk:kk+scale_factor(3)-1_ik)) / REAL(PRODUCT(scale_factor), KIND=rk)
     END DO
     END DO
     END DO
@@ -119,12 +119,12 @@ INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2, rry_out_ik2
 INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4, rry_out_ik4
 INTEGER(KIND=mik), DIMENSION(3) :: sections
 INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections_ik=0, rank_section
-INTEGER(KIND=ik), DIMENSION(3) :: subarray_origin, scale_factor
-INTEGER(KIND=ik), DIMENSION(3) :: new_subarray_origin, remainder
-INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_dims, new_glbl_rry_dims, new_dims, lcl_subarray_origin
+INTEGER(KIND=ik), DIMENSION(3) :: scale_factor_ik, new_subarray_origin, remainder
+INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_dims, new_glbl_rry_dims, lcl_subarray_origin
+INTEGER(KIND=ik) :: correction_counter = 0, ii=0
 
 REAL(KIND=rk) :: start, end
-REAL(KIND=rk), DIMENSION(3) :: rgn_glbl_shft, spcng, new_spacing, offset
+REAL(KIND=rk), DIMENSION(3) :: origin_glbl_shft, spcng, new_spacing, offset, scale_factor
 
 LOGICAL :: stp
 
@@ -182,29 +182,31 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     WRITE(std_out, FMT_TXT) 'Reading data from *.meta file.'
 
-    CALL meta_read(std_out, 'ORIGIN_SHIFT_GLBL', m_rry, rgn_glbl_shft)
-    
+    CALL meta_read(std_out, 'ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft)
+    CALL meta_read(std_out, 'TYPE_RAW', m_rry, type)
     CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
     CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
 
-    CALL meta_read(std_out, 'SCALE_FACTOR', m_rry, scale_factor)
+    CALL meta_read(std_out, 'SCALE_FACTOR', m_rry, scale_factor_ik)
     CALL meta_read(std_out, 'RESTART'     , m_rry, restart)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
         CALL print_err_stop(std_out, mssg, 1)
     END IF
+
 END IF ! my_rank==0
 
 !------------------------------------------------------------------------------
 ! Send required variables
 !------------------------------------------------------------------------------
-CALL MPI_BCAST(in%p_n_bsnm ,  INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(out%p_n_bsnm,  INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(type        ,  INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(dims        ,  3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(spcng       ,  3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(rgn_glbl_shft, 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(in%p_n_bsnm , INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(type        , INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(scale_factor_ik, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(dims           , 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(spcng          , 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(origin_glbl_shft  , 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
 
 !------------------------------------------------------------------------------
 ! Get dimensions for each domain. Every processor reveives its own domain.
@@ -216,6 +218,7 @@ CALL MPI_BCAST(rgn_glbl_shft, 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD
 !------------------------------------------------------------------------------
 sections=0
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
+
 sections_ik = INT(sections, KIND=ik)
 
 CALL get_rank_section(INT(my_rank, KIND=ik), sections_ik, rank_section)
@@ -223,27 +226,38 @@ CALL get_rank_section(INT(my_rank, KIND=ik), sections_ik, rank_section)
 !------------------------------------------------------------------------------
 ! Get new dimensions out of (field of view) / target_spcng
 !------------------------------------------------------------------------------
-new_spacing = spcng * REAL(scale_factor, KIND=rk)
+new_spacing = spcng * scale_factor
 
-remainder = MODULO(dims, scale_factor)
-
-new_dims = dims - remainder
-
-offset = FLOOR(remainder/2._rk) * new_spacing
-
-rgn_glbl_shft = rgn_glbl_shft + offset
+scale_factor = REAL(scale_factor_ik, KIND=rk)
 
 !------------------------------------------------------------------------------
-! New/target subarray dimensions
+! Fit local array dimensions to scale_factor
 !------------------------------------------------------------------------------
-new_lcl_rry_dims  = (new_dims / sections_ik)
-new_subarray_origin = (rank_section-1_ik) * (rry_dims)
+remainder = MODULO(dims, scale_factor_ik)
+
+new_lcl_rry_dims = (dims - remainder) / sections_ik
+
+DO ii=1, 3
+    DO WHILE(MODULO(new_lcl_rry_dims(ii), scale_factor_ik(ii)) /= 0_ik)
+
+
+        new_lcl_rry_dims(ii) = new_lcl_rry_dims(ii) - 1_ik
+
+    END DO
+END DO 
 
 !------------------------------------------------------------------------------
 ! MPI specific subarray dimensions with global offset of remainder
 !------------------------------------------------------------------------------
-new_glbl_rry_dims = new_lcl_rry_dims * scale_factor
+new_glbl_rry_dims = new_lcl_rry_dims * sections_ik
+
 lcl_subarray_origin = (rank_section-1_ik) * (new_lcl_rry_dims) + FLOOR(remainder/2._rk, KIND=ik)
+
+offset = FLOOR(remainder/2._rk) * new_spacing
+
+origin_glbl_shft = origin_glbl_shft + offset
+
+new_subarray_origin = (rank_section-1_ik) * (rry_dims)
 
 !------------------------------------------------------------------------------
 ! The remainder is ignored, since the spatial resolution will break with a, 
@@ -262,24 +276,16 @@ IF(my_rank == 0) THEN
         WRITE(std_out, FMT_MSG_AxI0) "Processors:", size_mpi  
         WRITE(std_out, FMT_MSG) "Calculation of domain sectioning:"
         WRITE(std_out, FMT_MSG)
-        WRITE(std_out, FMT_MSG_AxI0) "Scale factor: ", scale_factor
+        WRITE(std_out, FMT_MSG_AxI0) "Scale factor: ", scale_factor_ik
         WRITE(std_out, FMT_MSG_AxI0) "sections: ", sections_ik
         WRITE(std_out, FMT_MSG_AxI0) "Input dims: ", dims
+        WRITE(std_out, FMT_MSG_AxI0) "Local subarray dimensions: ", new_lcl_rry_dims
         WRITE(std_out, FMT_MSG_AxI0) "Output dims: ", new_glbl_rry_dims
-        WRITE(std_out, FMT_MSG_AxI0) "subarray_origin: ", subarray_origin
+        WRITE(std_out, FMT_MSG_AxI0) "subarray_origin: ", new_subarray_origin
         WRITE(std_out, FMT_MSG_SEP)
         FLUSH(std_out)
     END IF
 
-    !------------------------------------------------------------------------------  
-    ! Check of dimensions are valid
-    !------------------------------------------------------------------------------  
-    IF ((MODULO(new_lcl_rry_dims(1), scale_factor(1)) /= 0_ik) .OR. &  
-        (MODULO(new_lcl_rry_dims(2), scale_factor(2)) /= 0_ik) .OR. & 
-        (MODULO(new_lcl_rry_dims(3), scale_factor(3)) /= 0_ik)) THEN
-        mssg = "Integer division of local arrays will fail. Check your implementation!"
-        CALL print_err_stop(std_out, mssg, 1_ik)
-    END IF
 END IF
 
 !------------------------------------------------------------------------------
@@ -309,8 +315,8 @@ END SELECT
 IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Downscaling image.'
     
 SELECT CASE(type)
-    CASE('ik2'); CALL downscale(rry_ik2, scale_factor, rry_out_ik2)
-    CASE('ik4'); CALL downscale(rry_ik4, scale_factor, rry_out_ik4)
+    CASE('ik2'); CALL downscale(rry_ik2, scale_factor_ik, rry_out_ik2)
+    CASE('ik4'); CALL downscale(rry_ik4, scale_factor_ik, rry_out_ik4)
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -343,6 +349,7 @@ IF(my_rank == 0) THEN
     CALL meta_write(fhmeo, 'DIMENSIONS'   , '(-)', new_glbl_rry_dims)
     CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(-)', new_glbl_rry_dims * new_spacing)
     CALL meta_write(fhmeo, 'ENTRIES'      , '(-)', PRODUCT(new_glbl_rry_dims))
+    CALL meta_write(fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)', PRODUCT(origin_glbl_shft))
 
     CALL CPU_TIME(end)
 
