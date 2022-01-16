@@ -16,12 +16,14 @@ USE vtk_meta_data
 USE raw_binary  
 
 IMPLICIT NONE
+! Parameter
+INTEGER(KIND=ik), PARAMETER :: debug = 1
 
 ! MPI variables
 INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 ! Std variables
-CHARACTER(LEN=scl) :: type_in, type_out, binary
+CHARACTER(LEN=scl) :: type_in, type_out, binary, restart, restart_cmd_arg
 CHARACTER(LEN=mcl) :: filename=''
 
 INTEGER(KIND=ik) :: hdr
@@ -36,6 +38,8 @@ REAL   (KIND=REAL32), DIMENSION(:,:,:), ALLOCATABLE :: rry_rk4
 REAL   (KIND=REAL64), DIMENSION(:,:,:), ALLOCATABLE :: rry_rk8
 INTEGER(KIND=INT16) , DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2
 INTEGER(KIND=INT32) , DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4
+
+LOGICAL :: stp = .FALSE.
 
 !------------------------------------------------------------------------------
 ! Invoke MPI 
@@ -59,22 +63,36 @@ IF (my_rank==0) THEN
     CALL CPU_TIME(start)
 
     !------------------------------------------------------------------------------
-    ! Start actual program
+    ! Parse the command arguments
+    !------------------------------------------------------------------------------
+    CALL get_cmd_args(binary, filename, stp, restart, restart_cmd_arg)
+    IF(stp) GOTO 1001
+    
+    IF (filename=='') THEN
+        CALL usage(binary)    
+
+        !------------------------------------------------------------------------------
+        ! On std_out since file of std_out is not spawned
+        !------------------------------------------------------------------------------
+        CALL print_err_stop(6, "No input file given", 1)
+    END IF
+
+    CALL meta_create_new(TRIM(ADJUSTL(filename)))
+
+    !------------------------------------------------------------------------------
+    ! Redirect std_out into a file in case std_out is not useful by environment.
+    ! Place these lines before handle_lock_file :-)
     !------------------------------------------------------------------------------
     std_out = determine_stout()
 
+    !------------------------------------------------------------------------------
+    ! Spawn standard out after(!) the basename is known
+    !------------------------------------------------------------------------------
+    IF(std_out/=6) CALL meta_start_ascii(std_out, '.std_out')
+
     CALL show_title()
-
-    CALL GET_COMMAND_ARGUMENT(0, binary)
-    CALL GET_COMMAND_ARGUMENT(1, filename)
-
-    IF (filename=='') THEN
-        CALL usage(binary)    
-        CALL print_err_stop(std_out, "No input file given", 1)
-    END IF
-
-    WRITE(std_out, FMT_TXT) 'Creating a new meta file.'
-    CALL meta_create_new(TRIM(ADJUSTL(filename)))
+ 
+    IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/.temporary.std_out"
 
     !------------------------------------------------------------------------------
     ! Read VTK file header
@@ -208,6 +226,11 @@ SELECT CASE(type_out)
 END SELECT
 
 !------------------------------------------------------------------------------
+! Only used in specific cases to finish more gracefully. (grep -i "GOTO")
+!------------------------------------------------------------------------------
+1001 Continue
+
+!------------------------------------------------------------------------------
 ! Finish program
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
@@ -217,7 +240,7 @@ IF(my_rank == 0) THEN
     WRITE(std_out, FMT_TXT_SEP)
 
     CALL meta_signing(binary)
-    CALL meta_close()
+    CALL meta_close(size_mpi)
 
     IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
