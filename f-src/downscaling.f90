@@ -178,7 +178,7 @@ IF (size_mpi < 2) CALL print_err_stop(std_out, "At least two ranks required to e
 !------------------------------------------------------------------------------
 IF (my_rank==0) THEN
 
-    CALL CPU_TIME(global_start)
+    CALL CPU_TIME(start)
 
     !------------------------------------------------------------------------------
     ! Parse the command arguments
