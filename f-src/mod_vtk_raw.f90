@@ -38,6 +38,14 @@ INTERFACE mpi_write_raw
    MODULE PROCEDURE mpi_write_raw_ik2
 END INTERFACE mpi_write_raw
 
+INTERFACE ser_read_raw
+   MODULE PROCEDURE ser_read_raw_ik2
+   MODULE PROCEDURE ser_read_raw_ik4
+   MODULE PROCEDURE ser_read_raw_ik8
+   MODULE PROCEDURE ser_read_raw_rk4
+   MODULE PROCEDURE ser_read_raw_rk8
+END INTERFACE ser_read_raw
+
 INTERFACE ser_write_raw
    MODULE PROCEDURE ser_write_raw_ik2
    MODULE PROCEDURE ser_write_raw_ik4
@@ -476,6 +484,7 @@ END SUBROUTINE mpi_write_raw_ik4
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik2(fh, filename, array)
 
@@ -483,7 +492,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -500,6 +509,7 @@ END SUBROUTINE ser_write_raw_ik2
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik4(fh, filename, array)
 
@@ -507,7 +517,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -524,6 +534,7 @@ END SUBROUTINE ser_write_raw_ik4
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik8(fh, filename, array)
 
@@ -531,7 +542,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -548,6 +559,7 @@ END SUBROUTINE ser_write_raw_ik8
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_rk4(fh, filename, array)
 
@@ -555,7 +567,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -572,6 +584,7 @@ END SUBROUTINE ser_write_raw_rk4
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_rk8(fh, filename, array)
 
@@ -579,15 +592,139 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
 END SUBROUTINE ser_write_raw_rk8
 
-END MODULE raw_binary
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_ik2(fh, filename, array)
 
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_ik4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_ik4(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_ik4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_ik8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_ik8(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_ik8
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_rk4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_rk4(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_rk4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_rk8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_rk8(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_rk8
+
+END MODULE raw_binary
 
 !------------------------------------------------------------------------------
 ! MODULE: vtk_meta_data
