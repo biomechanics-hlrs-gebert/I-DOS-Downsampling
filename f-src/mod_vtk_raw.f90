@@ -38,6 +38,14 @@ INTERFACE mpi_write_raw
    MODULE PROCEDURE mpi_write_raw_ik2
 END INTERFACE mpi_write_raw
 
+INTERFACE ser_read_raw
+   MODULE PROCEDURE ser_read_raw_ik2
+   MODULE PROCEDURE ser_read_raw_ik4
+   MODULE PROCEDURE ser_read_raw_ik8
+   MODULE PROCEDURE ser_read_raw_rk4
+   MODULE PROCEDURE ser_read_raw_rk8
+END INTERFACE ser_read_raw
+
 INTERFACE ser_write_raw
    MODULE PROCEDURE ser_write_raw_ik2
    MODULE PROCEDURE ser_write_raw_ik4
@@ -114,8 +122,9 @@ END SUBROUTINE get_rank_section
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -125,8 +134,13 @@ INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -166,8 +180,9 @@ END SUBROUTINE mpi_read_raw_ik2
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -177,8 +192,13 @@ INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -250,19 +270,25 @@ END SUBROUTINE uik2_to_ik2
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -303,8 +329,9 @@ END SUBROUTINE mpi_read_raw_rk4
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
-SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray)
+SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
 CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
@@ -314,8 +341,13 @@ REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
+LOGICAL, INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'EXTERNAL32'
+
+IF(PRESENT(dtrep)) THEN ! Prepare for other representations
+   IF(dtrep) datarep = 'EXTERNAL32'
+END IF
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -358,6 +390,7 @@ END SUBROUTINE mpi_read_raw_rk8
 !> @param[in] subarray_dims Voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the subarray
 !> @param[in] subarray Scalar field / Image data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
  SUBROUTINE mpi_write_raw_ik2 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
 ! type = 'int2', 'int4'
@@ -384,6 +417,7 @@ CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI
 CALL MPI_FILE_WRITE_ALL(fh, subarray, INT(SIZE(subarray), KIND=mik), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
 CALL MPI_TYPE_FREE(type_subarray, ierr)
+
 CALL MPI_FILE_CLOSE(fh, ierr)
 
 END SUBROUTINE mpi_write_raw_ik2
@@ -405,6 +439,7 @@ END SUBROUTINE mpi_write_raw_ik2
 !> @param[in] subarray_dims Voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the subarray
 !> @param[in] subarray Scalar field / Image data
+!> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
  SUBROUTINE mpi_write_raw_ik4 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
 ! type = 'int2', 'int4'
@@ -449,6 +484,7 @@ END SUBROUTINE mpi_write_raw_ik4
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik2(fh, filename, array)
 
@@ -456,7 +492,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -473,6 +509,7 @@ END SUBROUTINE ser_write_raw_ik2
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik4(fh, filename, array)
 
@@ -480,7 +517,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -497,6 +534,7 @@ END SUBROUTINE ser_write_raw_ik4
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik8(fh, filename, array)
 
@@ -504,7 +542,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -521,6 +559,7 @@ END SUBROUTINE ser_write_raw_ik8
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_rk4(fh, filename, array)
 
@@ -528,7 +567,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
@@ -545,6 +584,7 @@ END SUBROUTINE ser_write_raw_rk4
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
+!> @param[in] array Raw data
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_rk8(fh, filename, array)
 
@@ -552,15 +592,139 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
-OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
    CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
 END SUBROUTINE ser_write_raw_rk8
 
-END MODULE raw_binary
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_ik2(fh, filename, array)
 
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_ik4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_ik4(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_ik4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_ik8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_ik8(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_ik8
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_rk4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_rk4(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_rk4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_read_raw_rk8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Read raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!> @param[out] Array Raw data
+!------------------------------------------------------------------------------
+SUBROUTINE ser_read_raw_rk8(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(len=*), INTENT(IN) :: filename
+REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(OUT) :: array
+
+OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+READ(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_read_raw_rk8
+
+END MODULE raw_binary
 
 !------------------------------------------------------------------------------
 ! MODULE: vtk_meta_data
