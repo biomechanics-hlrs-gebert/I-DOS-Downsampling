@@ -39,17 +39,30 @@ SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
     INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: in_array
     INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: scale_factor
 
-    INTEGER(KIND=ik) :: ii, jj, kk
+    INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
+    REAL(KIND=rk) :: scale_volume
 
+    scale_volume = REAL(PRODUCT(scale_factor), KIND=rk)
+
+    nn = 1_ik
     DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
-    DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
-    DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
-        out_array = SUM(in_array(&
-            ii:ii+scale_factor(1)-1_ik, &
-            jj:jj+scale_factor(2)-1_ik, &
-            kk:kk+scale_factor(3)-1_ik)) / REAL(PRODUCT(scale_factor), KIND=rk)
-    END DO
-    END DO
+
+        mm = 1_ik
+        DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
+
+            ll = 1_ik
+            DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
+                out_array(ll, mm, nn) = SUM(in_array(&
+                    ii:ii+scale_factor(1)-1_ik, &
+                    jj:jj+scale_factor(2)-1_ik, &
+                    kk:kk+scale_factor(3)-1_ik)) / scale_volume
+                ll = ll + 1_ik
+            END DO
+
+            mm = mm + 1_ik
+        END DO
+
+        nn = nn + 1_ik
     END DO
 END SUBROUTINE downscale_ik2
 
@@ -71,17 +84,30 @@ SUBROUTINE downscale_ik4(in_array, scale_factor, out_array)
     INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: in_array
     INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: scale_factor
 
-    INTEGER(KIND=ik) :: ii, jj, kk
+    INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
+    REAL(KIND=rk) :: scale_volume
 
+    scale_volume = REAL(PRODUCT(scale_factor), KIND=rk)
+
+    nn = 1_ik
     DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
-    DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
-    DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
-        out_array = REAL(SUM(in_array(&
-            ii:ii+scale_factor(1)-1_ik, &
-            jj:jj+scale_factor(2)-1_ik, &
-            kk:kk+scale_factor(3)-1_ik)), KIND=rk) / REAL(PRODUCT(scale_factor), KIND=rk)
-    END DO
-    END DO
+
+        mm = 1_ik
+        DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
+
+            ll = 1_ik
+            DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
+                out_array(ll, mm, nn) = SUM(in_array(&
+                    ii:ii+scale_factor(1)-1_ik, &
+                    jj:jj+scale_factor(2)-1_ik, &
+                    kk:kk+scale_factor(3)-1_ik)) / scale_volume
+                ll = ll + 1_ik
+            END DO
+
+            mm = mm + 1_ik
+        END DO
+
+        nn = nn + 1_ik
     END DO
 END SUBROUTINE downscale_ik4
 
@@ -120,11 +146,13 @@ INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4, rry_out_ik4
 INTEGER(KIND=mik), DIMENSION(3) :: sections
 INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections_ik=0, rank_section
 INTEGER(KIND=ik), DIMENSION(3) :: scale_factor_ik, new_subarray_origin, remainder
-INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_dims, new_glbl_rry_dims, lcl_subarray_origin
-INTEGER(KIND=ik) :: correction_counter = 0, ii=0
+INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_in_dims, new_glbl_rry_dims, lcl_subarray_in_origin
+INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_out_dims, lcl_subarray_out_origin
+INTEGER(KIND=ik) :: ii=0
 
 REAL(KIND=rk) :: start, end
-REAL(KIND=rk), DIMENSION(3) :: origin_glbl_shft, spcng, new_spacing, offset, scale_factor
+REAL(KIND=rk), DIMENSION(3) :: origin_glbl_shft, spcng, field_of_view
+REAL(KIND=rk), DIMENSION(3) :: new_spacing, offset, scale_factor
 
 LOGICAL :: stp
 
@@ -226,22 +254,23 @@ CALL get_rank_section(INT(my_rank, KIND=ik), sections_ik, rank_section)
 !------------------------------------------------------------------------------
 ! Get new dimensions out of (field of view) / target_spcng
 !------------------------------------------------------------------------------
+scale_factor = REAL(scale_factor_ik, KIND=rk)
+
 new_spacing = spcng * scale_factor
 
-scale_factor = REAL(scale_factor_ik, KIND=rk)
+remainder = MODULO(dims, scale_factor_ik)
+
+new_lcl_rry_in_dims = (dims - remainder) / sections_ik
+new_lcl_rry_out_dims = (dims - remainder) / sections_ik / scale_factor_ik
 
 !------------------------------------------------------------------------------
 ! Fit local array dimensions to scale_factor
 !------------------------------------------------------------------------------
-remainder = MODULO(dims, scale_factor_ik)
-
-new_lcl_rry_dims = (dims - remainder) / sections_ik
-
 DO ii=1, 3
-    DO WHILE(MODULO(new_lcl_rry_dims(ii), scale_factor_ik(ii)) /= 0_ik)
+    DO WHILE(MODULO(new_lcl_rry_in_dims(ii), scale_factor_ik(ii)) /= 0_ik)
 
 
-        new_lcl_rry_dims(ii) = new_lcl_rry_dims(ii) - 1_ik
+        new_lcl_rry_in_dims(ii) = new_lcl_rry_in_dims(ii) - 1_ik
 
     END DO
 END DO 
@@ -249,11 +278,17 @@ END DO
 !------------------------------------------------------------------------------
 ! MPI specific subarray dimensions with global offset of remainder
 !------------------------------------------------------------------------------
-new_glbl_rry_dims = new_lcl_rry_dims * sections_ik
+new_glbl_rry_dims = new_lcl_rry_out_dims * sections_ik
 
-lcl_subarray_origin = (rank_section-1_ik) * (new_lcl_rry_dims) + FLOOR(remainder/2._rk, KIND=ik)
+field_of_view = new_glbl_rry_dims * new_spacing
 
-offset = FLOOR(remainder/2._rk) * new_spacing
+lcl_subarray_in_origin = (rank_section-1_ik) * (new_lcl_rry_in_dims) + FLOOR(remainder/2._rk, KIND=ik)
+lcl_subarray_out_origin = (rank_section-1_ik) * (new_lcl_rry_out_dims)
+
+!------------------------------------------------------------------------------
+! Remainder relative to input dimensions and spacings
+!------------------------------------------------------------------------------
+offset = FLOOR(remainder/2._rk) * spcng
 
 origin_glbl_shft = origin_glbl_shft + offset
 
@@ -279,9 +314,10 @@ IF(my_rank == 0) THEN
         WRITE(std_out, FMT_MSG_AxI0) "Scale factor: ", scale_factor_ik
         WRITE(std_out, FMT_MSG_AxI0) "sections: ", sections_ik
         WRITE(std_out, FMT_MSG_AxI0) "Input dims: ", dims
-        WRITE(std_out, FMT_MSG_AxI0) "Local subarray dimensions: ", new_lcl_rry_dims
+        WRITE(std_out, FMT_MSG_AxI0) "new_lcl_rry_in_dims: ", new_lcl_rry_in_dims
+        WRITE(std_out, FMT_MSG_AxI0) "new_lcl_rry_out_dims: ", new_lcl_rry_out_dims
         WRITE(std_out, FMT_MSG_AxI0) "Output dims: ", new_glbl_rry_dims
-        WRITE(std_out, FMT_MSG_AxI0) "subarray_origin: ", new_subarray_origin
+        WRITE(std_out, FMT_MSG_AxI0) "lcl_subarray_in_origin: ", lcl_subarray_in_origin
         WRITE(std_out, FMT_MSG_SEP)
         FLUSH(std_out)
     END IF
@@ -297,16 +333,16 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading image.'
 
 SELECT CASE(type)
     CASE('ik2') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
-            new_lcl_rry_dims, lcl_subarray_origin, rry_ik2)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
+            new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik2)
 
-        ALLOCATE(rry_out_ik2(new_lcl_rry_dims(1), new_lcl_rry_dims(2), new_lcl_rry_dims(3)))
+        ALLOCATE(rry_out_ik2(new_lcl_rry_out_dims(1), new_lcl_rry_out_dims(2), new_lcl_rry_out_dims(3)))
 
     CASE('ik4') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
-            new_lcl_rry_dims, lcl_subarray_origin, rry_ik4)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
+            new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik4)
 
-        ALLOCATE(rry_out_ik4(new_lcl_rry_dims(1), new_lcl_rry_dims(2), new_lcl_rry_dims(3)))
+        ALLOCATE(rry_out_ik4(new_lcl_rry_out_dims(1), new_lcl_rry_out_dims(2), new_lcl_rry_out_dims(3)))
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -327,12 +363,12 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Writing binary information to *.raw file
 SELECT CASE(type)
     CASE('ik2') 
         CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
-            new_lcl_rry_dims, lcl_subarray_origin, rry_ik2)
+            new_lcl_rry_out_dims, lcl_subarray_out_origin, rry_out_ik2)
         DEALLOCATE(rry_out_ik2)
 
     CASE('ik4') 
         CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
-            new_lcl_rry_dims, lcl_subarray_origin, rry_ik4)
+            new_lcl_rry_out_dims, lcl_subarray_out_origin, rry_out_ik4)
         DEALLOCATE(rry_out_ik4)
 
 END SELECT
@@ -346,10 +382,14 @@ END SELECT
 ! Finish program
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
+    CALL meta_write(fhmeo, 'PROCESSORS'       , '(-)', INT(size_mpi, KIND=ik))
+    CALL meta_write(fhmeo, 'SUBARRAY_SECTIONS', '(-)', sections_ik)
+    
     CALL meta_write(fhmeo, 'DIMENSIONS'   , '(-)', new_glbl_rry_dims)
-    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(-)', new_glbl_rry_dims * new_spacing)
+    CALL meta_write(fhmeo, 'SPACING'      , '(-)', new_spacing)
+    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(-)', field_of_view)
     CALL meta_write(fhmeo, 'ENTRIES'      , '(-)', PRODUCT(new_glbl_rry_dims))
-    CALL meta_write(fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)', PRODUCT(origin_glbl_shft))
+    CALL meta_write(fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)', origin_glbl_shft)
 
     CALL CPU_TIME(end)
 
