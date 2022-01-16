@@ -104,12 +104,12 @@ IF (my_rank==0) THEN
     WRITE(fhmeo, '(A)') "# HLRS|NUM Dataset Meta Information"
     WRITE(fhmeo, '(A)') ""
     WRITE(fhmeo, '(A)') "* GENERAL_INFORMATION"
-    CALL meta_write (fhmeo, 'CT_SCAN'          , in%dataset)
-    CALL meta_write (fhmeo, 'OWNER',             "TBD by user")
-    CALL meta_write (fhmeo, 'OWNER_CONTACT',     "TBD by user")
-    CALL meta_write (fhmeo, 'DATE_CREATED',      "TBD by user")
-    CALL meta_write (fhmeo, 'INTERNAL_ID',       "TBD by user")
-    CALL meta_write (fhmeo, 'HISTORY',           '(-)' , 1)
+    CALL meta_write (fhmeo, 'CT_SCAN', in%dataset)
+    CALL meta_write (fhmeo, 'OWNER',         "TBD by user")
+    CALL meta_write (fhmeo, 'OWNER_CONTACT', "TBD by user")
+    CALL meta_write (fhmeo, 'DATE_CREATED',  "TBD by user")
+    CALL meta_write (fhmeo, 'INTERNAL_ID',   "TBD by user")
+    CALL meta_write (fhmeo, 'HISTORY', '(-)' , 1)
     
     ! Write original data type to file for documentaroy purposes
     CALL meta_write (fhmeo, 'TYPE_IMPORT', TRIM(ADJUSTL(type_in)))
