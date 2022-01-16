@@ -1,10 +1,10 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-abstract: Computed tomography images frequently are provided as a *.vtk file. For use within the tool chain of the doctoral project of Johannes Gebert and for use in high-performance computing, converting them to the meta file format proved beneficial.
+abstract: "Computed tomography images frequently are provided as a *.vtk file. For use within the tool chain of the doctoral project of Johannes Gebert and for use in high-performance computing, converting them to the meta file format proved beneficial."
 authors:
   - family-names: "Gebert"
     given-names: "Johannes"
-    orcid: https://orcid.org/0000-0002-5245-2418
+    orcid: "https://orcid.org/0000-0002-5245-2418"
 title: "File Format to Meta Converter (XTOM)"
 version: 5.0.0
 date-released: 2022-01-09
@@ -26,7 +26,7 @@ preferred-citation:
   authors:
   - family-names: "Gebert"
     given-names: "Johannes"
-    orcid: https://orcid.org/0000-0002-5245-2418
+    orcid: "https://orcid.org/0000-0002-5245-2418"
   title: "File Format to Meta Converter (XTOM)"
   version: 1.0.0
   date-released: 2022-01-09
