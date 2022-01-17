@@ -14,6 +14,7 @@ MODULE meta
 
 IMPLICIT NONE
 
+   INTEGER, PARAMETER :: meta_mik = 4
    INTEGER, PARAMETER :: meta_ik = 8
    INTEGER, PARAMETER :: meta_rk = 8
    INTEGER, PARAMETER :: meta_mcl = 512
@@ -145,7 +146,7 @@ IF((restart == 'N') .AND. (exist)) THEN
    ! Delete out meta if the lock file was set.
    IF (exist) CALL execute_command_line ('rm '//TRIM(out%full))
 
-   CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), err=1_meta_ik)
+   CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), 1_meta_ik)
 END IF
 
 
@@ -155,7 +156,7 @@ END IF
 !------------------------------------------------------------------------------
 IF(((restart == 'Y') .AND. (.NOT. exist)) .OR. ((restart == 'N') .AND. (.NOT. exist))) THEN
    CALL execute_command_line ('touch '//TRIM(lockname), CMDSTAT=ios)
-   CALL print_err_stop(std_out, 'The .*.lock file could not be set.', err=ios)
+   CALL print_err_stop(std_out, 'The .*.lock file could not be set.', ios)
 END IF
 
 IF((restart == 'Y') .AND. (exist)) CONTINUE
@@ -179,6 +180,8 @@ CHARACTER(LEN=meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry
 
 CALL meta_invoke(meta_as_rry)
 CALL meta_continue(meta_as_rry)
+
+CALL meta_write(fhmeo, 'META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
 
 END SUBROUTINE meta_append
 
@@ -1293,9 +1296,12 @@ END SUBROUTINE meta_signing
 !> @description
 !> provided by a makefile. Furhermore, it requires a global_stds file.
 !------------------------------------------------------------------------------
-SUBROUTINE meta_close()
+SUBROUTINE meta_close(size_mpi)
 
+INTEGER(KIND=meta_mik) :: size_mpi
 LOGICAL :: opened
+
+CALL meta_write(fhmeo, 'PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
 
 WRITE(fhmeo, '(A)')
 WRITE(fhmeo, "(100('-'))")
