@@ -1,2 +1,2 @@
-CHARACTER(LEN=scl), PARAMETER :: longname = 'X to Meta Converter'
-CHARACTER(LEN=scl), PARAMETER :: hash = '0bea80fa73861eed2f22df2a06df71da63aafdd8'
+CHARACTER(LEN=scl), PARAMETER :: longname = 'Computed Tomography Image Filter'
+CHARACTER(LEN=scl), PARAMETER :: hash = '7f60583562fbcfcbb936405acdc2d6205fb7d459'
