@@ -111,7 +111,7 @@ IF (my_rank==0) THEN
         CASE('rk8') ; type_out = 'ik4'
         CASE('ik4') ; type_out = 'ik4'
         CASE('ik2') ; type_out = 'ik2'
-        CASE('uik2'); type_out = 'ik2'
+        CASE('uik2'); type_out = 'ik4'
     END SELECT
 
     !------------------------------------------------------------------------------
@@ -203,7 +203,10 @@ SELECT CASE(type_in)
         CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik4)
     CASE('ik2', 'uik2') 
         CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik2)
-        IF(type_in=='uik2') CALL uik2_to_ik2(rry_ik2)
+        IF(type_in=='uik2') THEN
+            CALL uik2_to_ik4(rry_ik2, rry_ik4)
+            DEALLOCATE(rry_ik2)
+        END IF 
 END SELECT
 
 !------------------------------------------------------------------------------

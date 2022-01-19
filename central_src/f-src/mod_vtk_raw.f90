@@ -226,7 +226,7 @@ END SUBROUTINE mpi_read_raw_ik4
 
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: uik2_to_ik2
+! SUBROUTINE: uik2_to_ik4
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -236,11 +236,13 @@ END SUBROUTINE mpi_read_raw_ik4
 !> @description
 !> Fortran does not know this shit. Therefore a workaround...
 !
-!> @param[inout] subarray int data
+!> @param[in] subarray_in Input data
+!> @param[out] subarray_out Output data
 !------------------------------------------------------------------------------  
-SUBROUTINE uik2_to_ik2(subarray)
+SUBROUTINE uik2_to_ik4(subarray_in, subarray_out)
 
-INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(INOUT) :: subarray
+INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(IN) :: subarray_in
+INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray_out
 INTEGER(KIND=ik) :: ii, jj, kk
 INTEGER(KIND=ik), DIMENSION(3) :: shp
 
@@ -248,30 +250,27 @@ INTEGER(KIND=ik), DIMENSION(3) :: shp
 ! Storing the array with + 65536 will cut off the image.
 ! At least INT32 required. All of the required variables are INT32.
 !------------------------------------------------------------------------------  
-INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate, subarray_ik4
+INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536, int2max=32768
 
-shp = SHAPE(subarray)
+shp = SHAPE(subarray_in)
 
-ALLOCATE(intermediate(shp(1), shp(2), shp(3)))
+ALLOCATE(subarray_out(shp(1), shp(2), shp(3)))
 
-intermediate = INT(subarray, KIND=INT32)
+subarray_out = INT(subarray_in, KIND=INT32)
+subarray_out = INT(0, KIND=INT32)
 
-DO kk=1, SIZE(subarray,3)
-DO jj=1, SIZE(subarray,2)
-DO ii=1, SIZE(subarray,1)
-   IF (intermediate(ii,jj,kk) .LT. conv_param) THEN
-      intermediate(ii,jj,kk) = INT(subarray(ii,jj,kk), KIND=INT32) + offset
+DO kk=1, shp(3)
+DO jj=1, shp(2)
+DO ii=1, shp(1)
+   IF(subarray_out(ii,jj,kk) .LT. conv_param) THEN
+      subarray_out(ii,jj,kk) = subarray_out(ii,jj,kk) + offset
    END IF 
 END DO
 END DO
 END DO
 
-subarray = INT(intermediate - 32768_ik, KIND=INT16)
 
-DEALLOCATE(intermediate)
-
-END SUBROUTINE uik2_to_ik2
+END SUBROUTINE uik2_to_ik4
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: mpi_read_raw_rk4
