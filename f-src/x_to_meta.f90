@@ -196,13 +196,13 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading binary information of *.vtk file
 SELECT CASE(type_in)
     CASE('rk4') 
         ! MPI_OFFSET_KIND needs ik=8 in this case.
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk4)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk4, 'EXTERNAL32')
     CASE('rk8') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk8)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk8, 'EXTERNAL32')
     CASE('ik4') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik4)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik4, 'EXTERNAL32')
     CASE('ik2', 'uik2') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik2)
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik2, 'EXTERNAL32')
         IF(type_in=='uik2') THEN
             CALL uik2_to_ik4(rry_ik2, rry_ik4)
             DEALLOCATE(rry_ik2)
