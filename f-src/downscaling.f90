@@ -138,6 +138,7 @@ INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer!!
 
 CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry
 CHARACTER(LEN=scl) :: type, binary, restart, restart_cmd_arg
+CHARACTER(LEN=mcl) :: cmd_arg_history
 CHARACTER(LEN=  8) :: date
 CHARACTER(LEN= 10) :: time
 
@@ -183,7 +184,7 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     ! Parse the command arguments
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, stp, restart, restart_cmd_arg)
+    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg, cmd_arg_history)
     IF(stp) GOTO 1001
     
     IF (in%full=='') THEN
@@ -235,6 +236,12 @@ IF (my_rank==0) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
         CALL print_err_stop(std_out, mssg, 1)
     END IF
+
+    !------------------------------------------------------------------------------
+    ! Restart handling
+    ! Done after meta_io to decide based on keywords
+    !------------------------------------------------------------------------------
+    CALL meta_handle_lock_file(restart, restart_cmd_arg)
 
 END IF ! my_rank==0
 
