@@ -23,8 +23,8 @@ INTEGER(KIND=ik), PARAMETER :: debug = 1
 INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 ! Std variables
-CHARACTER(LEN=scl) :: type_in, type_out, binary, restart, restart_cmd_arg
-CHARACTER(LEN=mcl) :: filename=''
+CHARACTER(LEN=scl) :: type_in, type_out, binary,  restart_cmd_arg
+CHARACTER(LEN=mcl) :: filename='', cmd_arg_history
 
 INTEGER(KIND=ik) :: hdr
 INTEGER(KIND=mik), DIMENSION(3) :: sections
@@ -33,7 +33,7 @@ INTEGER(KIND=ik), DIMENSION(3) :: remainder_per_dir, dims_reduced, subarray_orig
 REAL   (KIND=rk), DIMENSION(3) :: spcng, origin
 REAL   (KIND=rk) :: start, end
 
-! Binary blob variables
+! Binary blob variables1
 REAL   (KIND=REAL32), DIMENSION(:,:,:), ALLOCATABLE :: rry_rk4
 REAL   (KIND=REAL64), DIMENSION(:,:,:), ALLOCATABLE :: rry_rk8
 INTEGER(KIND=INT16) , DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2
@@ -64,8 +64,10 @@ IF (my_rank==0) THEN
 
     !------------------------------------------------------------------------------
     ! Parse the command arguments
+    ! restart_cmd_arg not used in XTOM, since lock file handling is not relevant.
+    ! Implemented here to sustain api compatibility (maybe a bad API :-)
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, filename, stp, restart, restart_cmd_arg)
+    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg, cmd_arg_history)
     IF(stp) GOTO 1001
     
     IF (filename=='') THEN
@@ -93,6 +95,7 @@ IF (my_rank==0) THEN
     CALL show_title()
  
     IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/.temporary.std_out"
+    WRITE(std_out, FMT_TXT) "Program invocation: "//TRIM(cmd_arg_history)          
 
     !------------------------------------------------------------------------------
     ! Read VTK file header
