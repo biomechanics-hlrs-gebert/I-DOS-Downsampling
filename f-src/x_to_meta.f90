@@ -24,7 +24,7 @@ INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 ! Std variables
 CHARACTER(LEN=scl) :: type_in, type_out, binary,  restart_cmd_arg
-CHARACTER(LEN=mcl) :: filename='', cmd_arg_history
+CHARACTER(LEN=mcl) :: filename='', cmd_arg_history=''
 
 INTEGER(KIND=ik) :: hdr
 INTEGER(KIND=mik), DIMENSION(3) :: sections
@@ -67,7 +67,7 @@ IF (my_rank==0) THEN
     ! restart_cmd_arg not used in XTOM, since lock file handling is not relevant.
     ! Implemented here to sustain api compatibility (maybe a bad API :-)
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg, cmd_arg_history)
+    CALL get_cmd_args(binary, filename, stp, restart_cmd_arg, cmd_arg_history)
     IF(stp) GOTO 1001
     
     IF (filename=='') THEN
@@ -94,8 +94,8 @@ IF (my_rank==0) THEN
 
     CALL show_title()
  
-    IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/.temporary.std_out"
-    WRITE(std_out, FMT_TXT) "Program invocation: "//TRIM(cmd_arg_history)          
+    IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/temporary.std_out"
+    WRITE(std_out, FMT_TXT) "Program invocation:"//TRIM(cmd_arg_history)          
 
     !------------------------------------------------------------------------------
     ! Read VTK file header
