@@ -1,10 +1,8 @@
 
-----------------------------------------------------------------------------------------------------
-
 p DOWNSCALING
 r SCALE_FACTOR          120  120  35                                   ! How many voxels are put together
-r RESTART               N                                              ! Restart a (partly) computed project
 r ORIGIN_SHIFT_GLBL     0.0  0.0  0.0                                  ! (mm)
+r RESTART               Y                                              ! Restart a (partly) computed project
 
 r NEW_BSNM_FEATURE      Downscaled                                     ! Last segment of basename - NO '_'
 r NEW_BSNM_PURPOSE      Dev                                            ! 3rd segment of basename - NO '_'

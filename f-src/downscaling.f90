@@ -329,7 +329,6 @@ IF(my_rank == 0) THEN
         WRITE(std_out, FMT_TXT) "Program invocation:"//TRIM(cmd_arg_history)          
         WRITE(std_out, FMT_TXT_SEP)
         WRITE(std_out, FMT_MSG_AxI0) "Debug Level:", debug
-        WRITE(std_out, FMT_MSG_AxI0) "Processors:", size_mpi  
         WRITE(std_out, FMT_MSG) "Calculation of domain sectioning:"
         WRITE(std_out, FMT_MSG)
         WRITE(std_out, FMT_MSG_AxI0) "Scale factor: ", scale_factor_ik
