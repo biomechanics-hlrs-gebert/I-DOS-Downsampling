@@ -83,7 +83,6 @@ IF (my_rank==0) THEN
 
     !------------------------------------------------------------------------------
     ! Redirect std_out into a file in case std_out is not useful by environment.
-    ! Place these lines before handle_lock_file :-)
     !------------------------------------------------------------------------------
     std_out = determine_stout()
 
