@@ -23,8 +23,10 @@ INTEGER(KIND=ik), PARAMETER :: debug = 1
 INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 ! Std variables
-CHARACTER(LEN=scl) :: type_in, type_out, binary,  restart_cmd_arg
-CHARACTER(LEN=mcl) :: filename='', cmd_arg_history=''
+CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
+CHARACTER(LEN=scl) :: type_in, type_out, binary,  restart_cmd_arg, dtrep=''
+CHARACTER(LEN=mcl) :: filename='', cmd_arg_history='', file_type_in = ''
+CHARACTER(LEN=4  ) :: suffix=''
 
 INTEGER(KIND=ik) :: hdr
 INTEGER(KIND=mik), DIMENSION(3) :: sections
@@ -79,8 +81,6 @@ IF (my_rank==0) THEN
         CALL print_err_stop(6, "No input file given", 1)
     END IF
 
-    CALL meta_create_new(TRIM(ADJUSTL(filename)))
-
     !------------------------------------------------------------------------------
     ! Redirect std_out into a file in case std_out is not useful by environment.
     !------------------------------------------------------------------------------
@@ -96,59 +96,100 @@ IF (my_rank==0) THEN
     IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/temporary.std_out"
     WRITE(std_out, FMT_TXT) "Program invocation:"//TRIM(cmd_arg_history)          
 
-    !------------------------------------------------------------------------------
-    ! Read VTK file header
-    !------------------------------------------------------------------------------
-    WRITE(std_out, FMT_TXT) 'Reading the vtk header.'
-    CALL read_vtk_meta (filename, hdr, dims, origin, spcng, type_in) 
+
 
     !------------------------------------------------------------------------------
-    ! Determine data types
-    ! Data types are converted to integer, since the provided precision on the
-    ! data is sufficient.
+    ! Check whether to convert from vtk to meta or the opposite way.
     !------------------------------------------------------------------------------
-    WRITE(std_out, FMT_TXT) 'Determining the output data types.'
-    SELECT CASE(type_in)
-        CASE('rk4') ; type_out = 'ik4'
-        CASE('rk8') ; type_out = 'ik4'
-        CASE('ik4') ; type_out = 'ik4'
-        CASE('ik2') ; type_out = 'ik2'
-        CASE('uik2'); type_out = 'ik4'
-    END SELECT
+    IF (filename(LEN_TRIM(filename, KIND=ik)-2:LEN_TRIM(filename, KIND=ik)) == "vtk") THEN
+        CALL meta_create_new(TRIM(ADJUSTL(filename)))
+ 
+        !------------------------------------------------------------------------------
+        ! Read VTK file header
+        !------------------------------------------------------------------------------
+        WRITE(std_out, FMT_TXT) 'Reading the vtk header.'
+        CALL read_vtk_meta (filename, hdr, dims, origin, spcng, type_in) 
 
-    !------------------------------------------------------------------------------
-    ! Write meta data 
-    !------------------------------------------------------------------------------
-    WRITE(std_out, FMT_TXT) 'Writing meta information to *.meta file.'
+        !------------------------------------------------------------------------------
+        ! Determine data types
+        ! Data types are converted to integer, since the provided precision on the
+        ! data is sufficient.
+        !------------------------------------------------------------------------------
+        WRITE(std_out, FMT_TXT) 'Determining the output data types.'
+        SELECT CASE(type_in)
+            CASE('rk4') ; type_out = 'ik4'
+            CASE('rk8') ; type_out = 'ik4'
+            CASE('ik4') ; type_out = 'ik4'
+            CASE('ik2') ; type_out = 'ik2'
+            CASE('uik2'); type_out = 'ik4'
+        END SELECT
 
-    WRITE(fhmeo, '(A)') "# HLRS|NUM Dataset Meta Information"
-    WRITE(fhmeo, '(A)') ""
-    WRITE(fhmeo, '(A)') "* GENERAL_INFORMATION"
-    CALL meta_write (fhmeo, 'CT_SCAN', in%dataset)
-    CALL meta_write (fhmeo, 'OWNER',         "TBD by user")
-    CALL meta_write (fhmeo, 'OWNER_CONTACT', "TBD by user")
-    CALL meta_write (fhmeo, 'DATE_CREATED',  "TBD by user")
-    CALL meta_write (fhmeo, 'INTERNAL_ID',   "TBD by user")
-    CALL meta_write (fhmeo, 'HISTORY', '(-)' , 1)
+        !------------------------------------------------------------------------------
+        ! Write meta data 
+        !------------------------------------------------------------------------------
+        WRITE(std_out, FMT_TXT) 'Writing meta information to *.meta file.'
+
+        WRITE(fhmeo, '(A)') "# HLRS|NUM Dataset Meta Information"
+        WRITE(fhmeo, '(A)') ""
+        WRITE(fhmeo, '(A)') "* GENERAL_INFORMATION"
+        CALL meta_write (fhmeo, 'CT_SCAN', in%dataset)
+        CALL meta_write (fhmeo, 'OWNER',         "TBD by user")
+        CALL meta_write (fhmeo, 'OWNER_CONTACT', "TBD by user")
+        CALL meta_write (fhmeo, 'DATE_CREATED',  "TBD by user")
+        CALL meta_write (fhmeo, 'INTERNAL_ID',   "TBD by user")
+        CALL meta_write (fhmeo, 'HISTORY', '(-)' , 1)
+        
+        ! Write original data type to file for documentaroy purposes
+        CALL meta_write (fhmeo, 'TYPE_IMPORT', TRIM(ADJUSTL(type_in)))
+        CALL meta_write (fhmeo, 'TYPE_RAW', TRIM(ADJUSTL(type_out)))
+        
+        !------------------------------------------------------------------------------
+        ! Data always are written as little endian; only vtk requires big endian.
+        !------------------------------------------------------------------------------
+        CALL meta_write (fhmeo, 'DATA_BYTE_ORDER'  , "LittleEndian")
+        CALL meta_write (fhmeo, 'DIMENSIONALITY'   , '(-)'  , 3)
+        CALL meta_write (fhmeo, 'DIMENSIONS'       , '(-)'  , dims)
+        CALL meta_write (fhmeo, 'NO_SCALAR_CMPNNTS', '(-)'  , 1)
+        CALL meta_write (fhmeo, 'SPACING'          , '(mm)' , spcng)
+        CALL meta_write (fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)' , [0._rk, 0._rk, 0._rk])
+        CALL meta_write (fhmeo, 'ORIGIN'           , '(-)'  , [0, 0, 0])
+        CALL meta_write (fhmeo, 'FIELD_OF_VIEW'    , '(mm)' , dims*spcng)
+        CALL meta_write (fhmeo, 'ENTRIES'          , '(-)'  , PRODUCT(dims))
     
-    ! Write original data type to file for documentaroy purposes
-    CALL meta_write (fhmeo, 'TYPE_IMPORT', TRIM(ADJUSTL(type_in)))
-    CALL meta_write (fhmeo, 'TYPE_RAW', TRIM(ADJUSTL(type_out)))
-    
-    !------------------------------------------------------------------------------
-    ! Data always are written as little endian; only vtk requires big endian.
-    !------------------------------------------------------------------------------
-    CALL meta_write (fhmeo, 'DATA_BYTE_ORDER'  , "LittleEndian")
-    CALL meta_write (fhmeo, 'DIMENSIONALITY'   , '(-)'  , 3)
-    CALL meta_write (fhmeo, 'DIMENSIONS'       , '(-)'  , dims)
-    CALL meta_write (fhmeo, 'NO_SCALAR_CMPNNTS', '(-)'  , 1)
-    CALL meta_write (fhmeo, 'SPACING'          , '(mm)' , spcng)
-    CALL meta_write (fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)' , [0._rk, 0._rk, 0._rk])
-    CALL meta_write (fhmeo, 'ORIGIN'           , '(-)'  , [0, 0, 0])
-    CALL meta_write (fhmeo, 'FIELD_OF_VIEW'    , '(mm)' , dims*spcng)
-    CALL meta_write (fhmeo, 'ENTRIES'          , '(-)'  , PRODUCT(dims))
-   
-    FLUSH(fhmeo)
+        FLUSH(fhmeo)
+
+        file_type_in = "vtk"
+    ELSE IF (filename(LEN_TRIM(filename, KIND=ik)-3:LEN_TRIM(filename, KIND=ik)) == "meta") THEN
+        
+        !------------------------------------------------------------------------------
+        ! Special treatment of meta format, not a regular i/o procedure.
+        !------------------------------------------------------------------------------
+        in%full = TRIM(ADJUSTL(filename))
+        in%p_n_bsnm = filename(1:LEN_TRIM(ADJUSTL(filename))-5)
+
+        out = in
+
+        CALL meta_invoke(m_rry)
+
+        CALL meta_read(std_out, 'TYPE_RAW'  , m_rry, type_out)
+        CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
+        CALL meta_read(std_out, 'ORIGIN'    , m_rry, origin)
+        CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
+
+        CALL write_vtk_struct_points_header &
+            (fh_vtk, TRIM(out%p_n_bsnm)//vtk_suf, type_out, spcng, origin, dims)
+
+        CLOSE (fhmei)
+
+        file_type_in = "meta"
+        hdr = 0_ik
+
+        type_in = type_out
+
+    ELSE
+        mssg = "No valid input file (*.meta or *.vtk) given."
+        CALL print_err_stop(std_out, mssg, 1_ik)
+    END IF 
 
 END IF ! my_rank==0
 
@@ -159,6 +200,7 @@ CALL MPI_BCAST (type_in     , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM
 CALL MPI_BCAST (type_out    , INT(scl, KIND=mik)     , MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (in%p_n_bsnm , INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (out%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (file_type_in, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (hdr , 1_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (dims, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 
@@ -193,18 +235,26 @@ IF(rank_section(3) == sections_ik(3)) rry_dims(3) = rry_dims(3) + remainder_per_
 !------------------------------------------------------------------------------
 ! Read binary part of the vtk file - basically a *.raw file
 !------------------------------------------------------------------------------
-IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading binary information of *.vtk file.'
+IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading binary information of *.'//TRIM(file_type_in)//' file.'
 
+IF (file_type_in == "vtk") THEN
+    suffix = vtk_suf
+    dtrep = 'EXTERNAL32'
+ELSE IF (file_type_in == "meta") THEN
+    suffix = raw_suf
+    dtrep = 'NATIVE'
+END IF 
+ 
 SELECT CASE(type_in)
     CASE('rk4') 
         ! MPI_OFFSET_KIND needs ik=8 in this case.
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk4, 'EXTERNAL32')
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//suffix, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk4, TRIM(dtrep))
     CASE('rk8') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk8, 'EXTERNAL32')
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//suffix, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_rk8, TRIM(dtrep))
     CASE('ik4') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik4, 'EXTERNAL32')
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//suffix, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik4, TRIM(dtrep))
     CASE('ik2', 'uik2') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//vtk_suf, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik2, 'EXTERNAL32')
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//suffix, INT(hdr, KIND=8), dims, rry_dims, subarray_origin, rry_ik2, TRIM(dtrep))
         IF(type_in=='uik2') THEN
             CALL uik2_to_ik4(rry_ik2, rry_ik4)
             DEALLOCATE(rry_ik2)
@@ -216,9 +266,30 @@ END SELECT
 !------------------------------------------------------------------------------
 IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Converting and writing binary information to *.raw file.'
 
+!------------------------------------------------------------------------------
+! interchange suffixes to convert vtk/meta or meta/vtk
+!------------------------------------------------------------------------------
+IF (file_type_in == "vtk") THEN
+    suffix = raw_suf
+
+    hdr = 0_8
+
+    dtrep = 'NATIVE'
+ELSE IF (file_type_in == "meta") THEN
+    suffix = vtk_suf
+
+    dtrep = 'EXTERNAL32'
+
+    !------------------------------------------------------------------------------
+    ! Get the size of the meta header
+    !------------------------------------------------------------------------------
+    INQUIRE(FILE=TRIM(out%p_n_bsnm)//suffix, SIZE=hdr)
+END IF 
+
 SELECT CASE(type_out)
     CASE('ik2') 
-        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik2)
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//suffix, INT(hdr, KIND=8), dims, &
+            rry_dims, subarray_origin, rry_ik2, TRIM(dtrep))
     CASE('ik4') 
         SELECT CASE(type_in)
             CASE('rk4') 
@@ -227,7 +298,8 @@ SELECT CASE(type_out)
                 rry_ik4 = INT(rry_rk8, KIND=INT32)
         END SELECT
 
-        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, rry_dims, subarray_origin, rry_ik4)
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//suffix, INT(hdr, KIND=8), dims, &
+            rry_dims, subarray_origin, rry_ik4, TRIM(dtrep))
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -244,8 +316,14 @@ IF(my_rank == 0) THEN
     WRITE(std_out, FMT_TXT_xAF0) 'Finishing the program took', end-start,'seconds.'
     WRITE(std_out, FMT_TXT_SEP)
 
-    CALL meta_signing(binary)
-    CALL meta_close(size_mpi)
+    IF (file_type_in == "vtk") THEN
+        CALL meta_signing(binary)
+        CALL meta_close(size_mpi)
+
+    ELSE IF (file_type_in == "meta") THEN
+        CALL write_vtk_struct_points_footer (fh_vtk, TRIM(out%p_n_bsnm)//suffix)
+    
+    END IF
 
     IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
