@@ -1,2 +1,2 @@
-CHARACTER(LEN=scl), PARAMETER :: longname = 'X to Meta Converter'
-CHARACTER(LEN=scl), PARAMETER :: hash = '7f68e6c54ae47259e5e6c419be2811c6cfe1c4bb'
+CHARACTER(LEN=scl), PARAMETER :: longname = 'Directly Discretizing Tensor Computation'
+CHARACTER(LEN=scl), PARAMETER :: hash = '5d8ee2542c96ceaf8588c705acc6c4d3ba583015'

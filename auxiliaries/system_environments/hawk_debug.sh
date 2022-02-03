@@ -4,9 +4,28 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Created:   25.12.2021
-# Last edit: 23.01.2022
+# Last edit: 28.01.2022
 # -----------------------------------------------------------------------------
-# Commented out mpi for hawk since the defaults are ok.
+#
+# Allocate compute node(s) before sourcing this script
+# qsub -I -l select=1:node_type=rome:ncpus=128:mpiprocs=128 -l walltime=07:59:59
+#
+# Load VNC
+/sw/vulcan-CentOS7/hlrs/tools/VirtualGL/2.6.5/bin/vncserver -rfbauth $HOME/.vnc/passwd
+#
+# Export Display.
+export DISPLAY=:1
+echo "-- Check whether DISPLAY=:1 is correct."
+echo "-- After a second log in, this might be :2."
+#
+# Load debugger
+module load forge
+#
+# Start debugger
+# forge >/dev/null 2>/dev/null &
+#
+# On client (r35c3t4n2:1 --> compute_node:display)
+# ./vncviewer -via hpcgeber@hawk-login04.hww.hlrs.de r35c3t4n2:1
 # -----------------------------------------------------------------------------
 #
 # Load MPI
@@ -53,3 +72,7 @@ export USE_STD_OUT=YES
 # ----------------------------------------
 # Root is a git repo?
 export PROVIDES_GIT=NO
+#
+# ----------------------------------------
+# Load stats
+watch -n 2 "echo 'Connect to:'; echo vncviewer -via hpcgeber@hawk-login04.hww.hlrs.de $(uname -a | cut -d ' ' -f 2)$DISPLAY; echo; echo; free -h --mega; echo; echo; qstat -a; echo; echo; ls -l datasets"
