@@ -16,7 +16,6 @@ CHARACTER(LEN=*), PARAMETER :: out_amount  = "DEBUG" ! "PRODUCTION"
 ! General constants
 INTEGER, PARAMETER :: sik = 2   ! INTEGER Kind
 INTEGER, PARAMETER :: ik  = 8   ! INTEGER Kind
-INTEGER, PARAMETER :: pik = 4   ! PETSc INTEGER Kind; Compile with corresponding mpi.
 INTEGER, PARAMETER :: mik = 4   ! MPI INTEGER Kind; Compile with corresponding mpi.
 INTEGER, PARAMETER :: rk  = 8   ! Real Kind
 INTEGER, PARAMETER :: mcl = 512 ! Max   character length

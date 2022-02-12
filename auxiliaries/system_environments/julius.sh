@@ -6,7 +6,7 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Created:   10.05.2021
-# Last edit: 03.01.2022
+# Last edit: 12.02.2022
 # -----------------------------------------------------------------------------
 # MPI environment
 mpi_prefix=/opt/mpi/openmpi-I4-4.1.2
@@ -26,13 +26,13 @@ if [[ -f "f-src/struct_process.f90" ]]; then
     #
     # ----------------------------------------
     # METIS installation
-    metis_prefix=/opt/metis/metis-5.1.0
+    metis_prefix=$PWD/lib/metis/metis-5.1.0
     export METIS_INCPATH=${metis_prefix}/include
     export METIS_LIBPATH=${metis_prefix}/lib
     #
     # ----------------------------------------
     # PETSc installation
-    petsc_prefix=/opt/petsc/petsc-3.15
+    petsc_prefix=$PWD/lib/petsc/petsc-3.15/
     export PETSC_INCPATH=${petsc_prefix}/include
     export PETSC_LIBPATH=${petsc_prefix}/lib
     export LD_LIBRARY_PATH=${petsc_prefix}/lib:$LD_LIBRARY_PATH
