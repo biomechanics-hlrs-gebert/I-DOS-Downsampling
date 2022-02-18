@@ -187,7 +187,7 @@ CHARACTER(LEN=meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry
 CALL meta_invoke(meta_as_rry)
 CALL meta_continue(meta_as_rry)
 
-CALL meta_write(fhmeo, 'META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
+CALL meta_write('META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
  
 CALL CPU_TIME(meta_start)
 END SUBROUTINE meta_append
@@ -311,13 +311,8 @@ CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in
 ! Internal Variables
 INTEGER(KIND=meta_ik) :: ios
 
-!------------------------------------------------------------------------------
-! Alter the meta file name
-! The variable »alter« must be given and must be true, 
-! because its a dangerous operation which may lead to data loss.
-!------------------------------------------------------------------------------
-CALL meta_read (fhmon, 'NEW_BSNM_FEATURE', m_in, out%features)
-CALL meta_read (fhmon, 'NEW_BSNM_PURPOSE', m_in, out%purpose)
+CALL meta_read ('NEW_BSNM_FEATURE', m_in, out%features)
+CALL meta_read ('NEW_BSNM_PURPOSE', m_in, out%purpose)
 
 IF ((out%purpose == in%purpose) .AND. (out%features == in%features)) THEN
    WRITE(std_out,FMT_WRN) 'The basename (in part) did not change.'
@@ -533,8 +528,8 @@ END SUBROUTINE meta_existing_ascii
 !> @brief
 !> Truncate a keyword which was too long. Could do other stuff as well.
 !
-!> @param[in] fh File handle 
-!> @param[in] keyword Keyword to check
+!> @param[in] un Unit of the file to read from. 
+!> @return no_lines Number of lines
 !------------------------------------------------------------------------------  
 function count_lines(un) result(no_lines)
 
@@ -570,21 +565,17 @@ End function count_lines
 !> @brief
 !> Truncate a keyword which was too long. Could do other stuff as well.
 !
-!> @param[in] fh File handle 
 !> @param[in] keyword Keyword to check
 !------------------------------------------------------------------------------  
-SUBROUTINE check_keyword(fh, keyword)
+SUBROUTINE check_keyword(keyword)
 
-INTEGER(KIND=meta_ik) :: fh 
-CHARACTER(LEN=*)   :: keyword
+CHARACTER(LEN=*) :: keyword
 CHARACTER(LEN=kcl) :: kywd_lngth
 
 kywd_lngth = ''
 
 IF(LEN_TRIM(keyword) .GT. LEN(kywd_lngth)) THEN
 
-   WRITE(fh, '(A)') ''
-   
    WRITE(std_out,FMT_WRN) "The keyword »"//TRIM(keyword)//"« is longer"
    WRITE(std_out,FMT_WRN) "than the convention allows and therefore truncated!"
    
@@ -652,19 +643,17 @@ END SUBROUTINE parse_basename
 !> Routine to truncate a keyword which was too long. Could do other stuff 
 !> as well.
 !
-!> @param[in] fh File handle 
 !> @param[in] keyword Keyword to check
 !------------------------------------------------------------------------------  
-SUBROUTINE check_unit(fh, unit)
+SUBROUTINE check_unit(unit)
 
-INTEGER  (KIND=meta_ik) :: fh 
-CHARACTER(LEN=*)   :: unit
+CHARACTER(LEN=*) :: unit
 CHARACTER(LEN=ucl) :: unit_lngth
 
 ! Check unit length for convention and proper formatting
 IF(LEN_TRIM(unit) .GT. LEN(unit_lngth)) THEN
 
-   WRITE(fh, '(A)') ''
+   WRITE(std_out, '(A)') ''
 
    WRITE(std_out,FMT_WRN) "The unit "//TRIM(unit)//" is longer than"
    WRITE(std_out,FMT_WRN) "the convention allows and therefore truncated!"
@@ -691,20 +680,16 @@ END SUBROUTINE check_unit
 !> The program reads keywords as long as they are before or withing the owns 
 !> programs scope.
 ! 
-!> @param[in] fh File handle to read a keyword from.
 !> @param[in] keyword Keyword to read
 !> @param[in] dims Dimensions requested
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] chars Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_extract_keyword_data (fh, keyword, dims, m_in, res_tokens, res_ntokens)
+SUBROUTINE meta_extract_keyword_data (keyword, dims, m_in, tokens)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 INTEGER(KIND=meta_ik), INTENT(IN) :: dims
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in
-CHARACTER(LEN=meta_mcl) :: res_tokens(30)
-INTEGER(KIND=meta_ik) :: res_ntokens
 
 ! Internal variables
 INTEGER(KIND=meta_ik) :: kywd_found, ii, ntokens
@@ -714,7 +699,7 @@ LOGICAL :: override
 kywd_found = 0
 override = .FALSE.
 
-CALL check_keyword(fh, keyword)
+CALL check_keyword(keyword)
 
 !------------------------------------------------------------------------------
 ! Parse Data out of the input array
@@ -729,13 +714,6 @@ DO ii =1, SIZE(m_in)
             kywd_found = 1
 
             !------------------------------------------------------------------------------
-            ! Store the keywords data.
-            ! Following m_in(ii) - lines -  will overwrite this information.
-            !------------------------------------------------------------------------------
-            res_tokens = tokens
-            res_ntokens = ntokens
-
-            !------------------------------------------------------------------------------
             ! Exit, if the keyword appears the first time in the programs scope.
             !------------------------------------------------------------------------------
             IF ((override) .AND. (tokens(1) /= 'w')) GOTO 2011
@@ -743,7 +721,7 @@ DO ii =1, SIZE(m_in)
          END IF
       CASE('p')
          !------------------------------------------------------------------------------
-         ! User tells, that the scope of another program begins.
+         ! The scope of another program begins.
          !------------------------------------------------------------------------------
          IF ((.NOT. override) .AND. (tokens(2) == TRIM(global_meta_program_keyword))) THEN
             override = .TRUE.
@@ -759,7 +737,7 @@ END DO
 
 2011 CONTINUE
 
-IF((res_ntokens < dims+2) .AND. (kywd_found /= 0)) THEN
+IF((ntokens < dims+2) .AND. (kywd_found /= 0)) THEN
    CALL print_err_stop(std_out, "Data of keyword '"//TRIM(ADJUSTL(keyword))//"' invalid.", 1)
 END IF
 
@@ -779,23 +757,19 @@ END SUBROUTINE meta_extract_keyword_data
 !> @brief
 !> Wrapper to parse character Keywords.
 !
-!> @param[in] fh File handle to read a keyword from.
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] chars Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_C (fh, keyword, m_in, chars)
+SUBROUTINE meta_read_C (keyword, m_in, chars)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
 CHARACTER(LEN=*), INTENT(OUT) :: chars 
 
-! Internal variables
 CHARACTER(LEN=meta_mcl) :: tokens(30)
-INTEGER(KIND=meta_ik) :: ntokens
 
-CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
 
 chars = TRIM(ADJUSTL(tokens(3)))
 
@@ -809,23 +783,19 @@ END SUBROUTINE meta_read_C
 !> @brief
 !> Wrapper to parse Keywords with 0D integer data.
 ! 
-!> @param[in] fh File handle to read a keyword from.
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] int_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I0D (fh, keyword, m_in, int_0D)
+SUBROUTINE meta_read_I0D (keyword, m_in, int_0D)
      
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 INTEGER(KIND=meta_ik), INTENT(OUT) :: int_0D 
 
-! Internal variables
 CHARACTER(LEN=meta_mcl) :: tokens(30)
-INTEGER(KIND=meta_ik) :: ntokens
 
-CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
 
 READ(tokens(3), '(I12)') int_0D 
 
@@ -839,23 +809,19 @@ END SUBROUTINE meta_read_I0D
 !> @brief
 !> Wrapper to parse Keywords with 0D floating point data.
 ! 
-!> @param[in] fh File handle to read a keyword from.
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] real_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_R0D (fh, keyword, m_in, real_0D)
+SUBROUTINE meta_read_R0D (keyword, m_in, real_0D)
      
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 REAL(KIND=meta_rk), INTENT(OUT) :: real_0D 
 
-! Internal variables
 CHARACTER(LEN=meta_mcl) :: tokens(30)
-INTEGER(KIND=meta_ik) :: ntokens
 
-CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
 
 READ(tokens(3), '(F39.10)') real_0D 
 
@@ -874,18 +840,15 @@ END SUBROUTINE meta_read_R0D
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] int_1D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I1D (fh, keyword, m_in, int_1D)
+SUBROUTINE meta_read_I1D (keyword, m_in, int_1D)
 
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
 INTEGER(KIND=meta_ik), DIMENSION(:), INTENT(OUT) :: int_1D 
 
-! Internal variables
 CHARACTER(LEN=meta_mcl) :: tokens(30)
-INTEGER(KIND=meta_ik) :: ntokens
 
-CALL meta_extract_keyword_data (fh, keyword, SIZE(int_1D), m_in, tokens, ntokens)
+CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens)
 
 READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
@@ -899,23 +862,19 @@ END SUBROUTINE meta_read_I1D
 !> @brief
 !> Wrapper to parse Keywords with 1D integer data.
 ! 
-!> @param[in] fh File handle to read a keyword from.
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] real_1D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_R1D (fh, keyword, m_in, real_1D)
+SUBROUTINE meta_read_R1D (keyword, m_in, real_1D)
 
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 REAL(KIND=meta_rk), DIMENSION(:), INTENT(OUT) :: real_1D 
 
-! Internal variables
 CHARACTER(LEN=meta_mcl) :: tokens(30)
-INTEGER(KIND=meta_ik) :: ntokens
 
-CALL meta_extract_keyword_data (fh, keyword, SIZE(real_1D), m_in, tokens, ntokens)
+CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens)
 
 READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
@@ -930,40 +889,38 @@ END SUBROUTINE meta_read_R1D
 !> @brief
 !> Module to write finalized strings of keywords
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] stdspcfill String with data
 !> @param[in] unit Unit of the value
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_keyword (fh, keyword, stdspcfill, unit)
+SUBROUTINE meta_write_keyword (keyword, stdspcfill, unit) ! fh
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: stdspcfill 
 CHARACTER(LEN=*), INTENT(IN) :: unit
 
 INTEGER(KIND=ik) :: rpt
-CHARACTER(LEN=meta_scl) :: fmt, str
+CHARACTER(LEN=meta_scl) :: frmt, str
 CHARACTER(LEN=8)  :: date
 CHARACTER(LEN=10) :: time
 CHARACTER(LEN=5)  :: timezone
 
-CALL check_keyword(fh, keyword)
-CALL check_unit(fh, unit)
+CALL check_keyword(keyword)
+CALL check_unit(unit)
 
-WRITE(fmt, '(A,I0,A)') "(2A, T", kcl, ")"
-WRITE(fh, fmt, ADVANCE='NO') "w ", keyword
+WRITE(frmt, '(A,I0,A)') "(2A, T", kcl, ")"
+WRITE(fhmeo, frmt, ADVANCE='NO') "w ", keyword
 
-WRITE(fmt, '(A,I0,A)') "(A, T", stdspc+1, ")"
-WRITE(fh, fmt, ADVANCE='NO') TRIM(ADJUSTL(stdspcfill))
+WRITE(frmt, '(A,I0,A)') "(A, T", stdspc+1, ")"
+WRITE(fhmeo, frmt, ADVANCE='NO') TRIM(ADJUSTL(stdspcfill))
 
 !------------------------------------------------------------------------------
 ! Only write if stdspcfill (are of actual information/data) was not overflowed
 ! < instead of <= to get 1 space clearance
 !------------------------------------------------------------------------------  
 IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc) THEN
-   WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
-   WRITE(fh, fmt, ADVANCE='NO') unit
+   WRITE(frmt, '(A,I0,A)') "(A, T", ucl+1, ")"
+   WRITE(fhmeo, frmt, ADVANCE='NO') unit
    rpt=0
 ELSE
    rpt = stdspc+ucl-LEN_TRIM(ADJUSTL(stdspcfill))
@@ -978,9 +935,9 @@ IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc+ucl) THEN
    str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
    str = TRIM(str)//' '//timezone
 
-   WRITE(fh, '(A)') TRIM(str)
+   WRITE(fhmeo, '(A)') TRIM(str)
 ELSE
-   WRITE(fh, '(A)') "" ! Basically a newline
+   WRITE(fhmeo, '(A)') "" ! Basically a newline
 END IF
 END SUBROUTINE meta_write_keyword
 
@@ -994,17 +951,14 @@ END SUBROUTINE meta_write_keyword
 !> @brief
 !> Module to write finalized strings of keywords
 !
-!> @param[in] fh File handle to write a log/mon or text to.
-!> @param[in] keyword Keyword to write
-!> @param[in] stdspcfill String with data
-!> @param[in] unit Unit of the value
+!> @param[in] binary_name Name of the programs executable
 !------------------------------------------------------------------------------
 SUBROUTINE meta_write_sha256sum(binary_name)
    
 CHARACTER(LEN=*), INTENT(IN) :: binary_name
 
 CHARACTER(LEN=kcl-1) :: keyword = ''
-CHARACTER(LEN=meta_scl) :: fmt, stdspcfill
+CHARACTER(LEN=meta_scl) :: frmt, stdspcfill
 INTEGER(KIND=meta_ik), DIMENSION(5) :: stat = 0
 INTEGER(KIND=meta_ik) :: ios
 
@@ -1015,8 +969,8 @@ LOGICAL :: exist
 !------------------------------------------------------------------------------
 keyword = "w SHA256SUM_OF_BINARY"
 
-WRITE(fmt, '(A,I0,A)') "(2A, T", kcl, ")"
-WRITE(fhmeo, fmt, ADVANCE='NO') keyword
+WRITE(frmt, '(A,I0,A)') "(2A, T", kcl, ")"
+WRITE(fhmeo, frmt, ADVANCE='NO') keyword
 
 !------------------------------------------------------------------------------
 ! Check the buffer file
@@ -1053,9 +1007,9 @@ IF(SUM(stat)==0) THEN
 END IF
 
 IF (SUM(stat) == 0) THEN
-   WRITE(fhmeo, fmt) TRIM(ADJUSTL(stdspcfill))
+   WRITE(fhmeo, frmt) TRIM(ADJUSTL(stdspcfill))
 ELSE
-   WRITE(fhmeo, fmt) "Could not get sha256sum. One of the previous system calls failed."
+   WRITE(fhmeo, frmt) "Could not get sha256sum. One of the previous system calls failed."
 END IF
 
 INQUIRE(FILE='temp_buffer', EXIST=exist)
@@ -1073,17 +1027,15 @@ END SUBROUTINE meta_write_sha256sum
 !> @brief
 !> Module to write keywords with character output. 
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] stdspcfill Characters to write
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_C (fh, keyword, stdspcfill)
+SUBROUTINE meta_write_C (keyword, stdspcfill)
    
-INTEGER  (KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: stdspcfill 
 
-CALL meta_write_keyword (fh, keyword, stdspcfill, '')
+CALL meta_write_keyword (keyword, stdspcfill, '')
 
 END SUBROUTINE meta_write_C
 
@@ -1095,14 +1047,12 @@ END SUBROUTINE meta_write_C
 !> @brief
 !> Module to write keywords of type integer dim 0.
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] int_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_I0D (fh, keyword, unit, int_0D)
+SUBROUTINE meta_write_I0D (keyword, unit, int_0D)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 INTEGER(KIND=meta_ik), INTENT(IN) :: int_0D 
@@ -1111,7 +1061,7 @@ CHARACTER(LEN=meta_scl) :: stdspcfill
 
 WRITE(stdspcfill, '(I0)') int_0D
 
-CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+CALL meta_write_keyword (keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_I0D
 
@@ -1125,14 +1075,12 @@ END SUBROUTINE meta_write_I0D
 !> Module to write keywords of type integer dim 0. Specific version to 
 !> deal with numbers greater than INT32 can deal with.
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] int_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_I0D_long (fh, keyword, unit, int_0D)
+SUBROUTINE meta_write_I0D_long (keyword, unit, int_0D)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 INTEGER(KIND=INT64), INTENT(IN) :: int_0D 
@@ -1141,7 +1089,7 @@ CHARACTER(LEN=meta_scl) :: stdspcfill
 
 WRITE(stdspcfill, '(I0)') int_0D
 
-CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+CALL meta_write_keyword (keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_I0D_long
 
@@ -1153,26 +1101,24 @@ END SUBROUTINE meta_write_I0D_long
 !> @brief
 !> Module to write keywords of type Real dim 0.
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] real_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_R0D (fh, keyword, unit, real_0D)
+SUBROUTINE meta_write_R0D (keyword, unit, real_0D)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 REAL(KIND=meta_ik), INTENT(IN) :: real_0D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, fmt
+CHARACTER(LEN=meta_scl) :: stdspcfill, frmt
 
-WRITE(fmt, '(A,I0,A)') "(F", stdspc, ".7)"
-WRITE(stdspcfill, fmt) real_0D ! '(F30.7)'
+WRITE(frmt, '(A,I0,A)') "(F", stdspc, ".7)"
+WRITE(stdspcfill, frmt) real_0D ! '(F30.7)'
 
 CALL trimzero(stdspcfill)
 
-CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+CALL meta_write_keyword (keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_R0D
 
@@ -1185,19 +1131,17 @@ END SUBROUTINE meta_write_R0D
 !> @brief
 !> Module to write keywords of type integer dim 1.
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] int_0D Datatype
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_I1D (fh, keyword, unit, int_1D)
+SUBROUTINE meta_write_I1D (keyword, unit, int_1D)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 INTEGER(KIND=meta_ik), INTENT(IN), DIMENSION(:) :: int_1D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, str, fmt
+CHARACTER(LEN=meta_scl) :: stdspcfill, str, frmt
 INTEGER  (KIND=meta_ik) :: ii
 
 stdspcfill = ''
@@ -1205,12 +1149,12 @@ str = ''
 
 DO ii=1, SIZE(int_1D)
    str = ''
-   WRITE(fmt, '(A,I0,A)') "(I", (stdspc/3)-1, ")"
-   WRITE(str, fmt) int_1D(ii) ! '(I0)'
+   WRITE(frmt, '(A,I0,A)') "(I", (stdspc/3)-1, ")"
+   WRITE(str, frmt) int_1D(ii) ! '(I0)'
    stdspcfill = TRIM(stdspcfill)//' '//TRIM(str)
 END DO
 
-CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+CALL meta_write_keyword (keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_I1D
 
@@ -1222,19 +1166,17 @@ END SUBROUTINE meta_write_I1D
 !> @brief
 !> Module to write keywords of type Real dim 1.
 !
-!> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] real_1D Datatype
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_R1D (fh, keyword, unit, real_1D)
+SUBROUTINE meta_write_R1D (keyword, unit, real_1D)
    
-INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 REAL(KIND=meta_rk), INTENT(IN), DIMENSION(:) :: real_1D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, str, fmt
+CHARACTER(LEN=meta_scl) :: stdspcfill, str, frmt
 INTEGER  (KIND=meta_ik) :: ii
 
 stdspcfill = ''
@@ -1242,14 +1184,14 @@ str = ''
 
 DO ii=1, SIZE(real_1D)
    str = ''
-   WRITE(fmt, '(A,I0,A)') "(F", (stdspc/3)-1, ".7)"
-   WRITE(str, fmt) real_1D(ii)
+   WRITE(frmt, '(A,I0,A)') "(F", (stdspc/3)-1, ".7)"
+   WRITE(str, frmt) real_1D(ii)
    ! CALL trimzero(str) ! Choose preferred formatting
 
    stdspcfill = TRIM(stdspcfill)//' '//TRIM(str)
 END DO
 
-CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+CALL meta_write_keyword (keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_R1D
 
@@ -1280,8 +1222,8 @@ CALL parse(TRIM(binary), '_', tokens, ntokens)
 revision = TRIM(tokens(2))
 
 WRITE(fhmeo, '(A)')
-CALL meta_write(fhmeo, 'PROGRAM_VERSION', TRIM(revision))
-CALL meta_write(fhmeo, 'PROGRAM_GIT_HASH', hash)
+CALL meta_write('PROGRAM_VERSION', TRIM(revision))
+CALL meta_write('PROGRAM_GIT_HASH', hash)
 
 CALL meta_write_sha256sum(binary)
 
@@ -1304,11 +1246,11 @@ SUBROUTINE meta_close(size_mpi)
 INTEGER(KIND=meta_mik) :: size_mpi
 LOGICAL :: opened
 
-CALL meta_write(fhmeo, 'PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
+CALL meta_write('PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
 
 CALL CPU_TIME(meta_end)
 
-CALL meta_write(fhmeo, 'FINISHED_WALLTIME' , '(s)', (meta_end-meta_start))
+CALL meta_write('FINISHED_WALLTIME' , '(s)', (meta_end-meta_start))
 
 WRITE(fhmeo, '(A)')
 WRITE(fhmeo, "(100('-'))")
@@ -1439,16 +1381,16 @@ IF(.NOT. fex) CALL print_err_stop(stdout, TRIM(in%p_n_bsnm)//raw_suf//" does not
 ! Read all required keywords to write the information ino the PureDat format
 ! stdout will be given to redirect errors to the command line or error file
 !------------------------------------------------------------------------------
-CALL meta_read (stdout, 'CT_SCAN', m_rry, branch_description)
+CALL meta_read('CT_SCAN', m_rry, branch_description)
 
 branch_description = TRIM(branch_description)//" scalar data structure"
  
-CALL meta_read (stdout, 'INTERNAL_ID', m_rry, field_content_desc)
-CALL meta_read (stdout, 'DIMENSIONS', m_rry, vox_per_dim)
-CALL meta_read (stdout, 'SPACING', m_rry, grid_spacings)
-CALL meta_read (stdout, 'ORIGIN', m_rry, origin)
-CALL meta_read (stdout, 'ORIGIN_SHIFT_GLBL', m_rry, origin_shift)
-CALL meta_read (stdout, 'TYPE_RAW', m_rry, datatype)
+CALL meta_read('INTERNAL_ID', m_rry, field_content_desc)
+CALL meta_read('DIMENSIONS', m_rry, vox_per_dim)
+CALL meta_read('SPACING', m_rry, grid_spacings)
+CALL meta_read('ORIGIN', m_rry, origin)
+CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_shift)
+CALL meta_read('TYPE_RAW', m_rry, datatype)
 
 !------------------------------------------------------------------------------
 ! Rename the raw file and enter the stda
