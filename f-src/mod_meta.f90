@@ -884,10 +884,6 @@ CHARACTER(LEN=meta_mcl) :: tokens(30)
 
 CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens)
 
-write(*,*) "real_1D: ", real_1D
-write(*,*) "real_1D: ", 3, ":", 2+SIZE(real_1D)
-write(*,*) "real_1D: ", tokens(3)
-write(*,*) "real_1D: ", tokens(5)
 READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
 END SUBROUTINE meta_read_R1D
