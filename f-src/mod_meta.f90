@@ -308,7 +308,6 @@ SUBROUTINE meta_continue(m_in)
 
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 
-! Internal Variables
 INTEGER(KIND=meta_ik) :: ios
 
 CALL meta_read ('NEW_BSNM_FEATURE', m_in, out%features)
@@ -685,11 +684,13 @@ END SUBROUTINE check_unit
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] chars Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_extract_keyword_data (keyword, dims, m_in, tokens)
+SUBROUTINE meta_extract_keyword_data (keyword, dims, m_in, res_tokens)
    
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 INTEGER(KIND=meta_ik), INTENT(IN) :: dims
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in
+CHARACTER(LEN=meta_mcl) :: res_tokens(30)
+INTEGER(KIND=meta_ik) :: res_ntokens
 
 ! Internal variables
 INTEGER(KIND=meta_ik) :: kywd_found, ii, ntokens
@@ -712,6 +713,13 @@ DO ii =1, SIZE(m_in)
 
          IF (tokens(2) == TRIM(keyword)) THEN
             kywd_found = 1
+
+            !------------------------------------------------------------------------------
+            ! Store the keywords data.
+            ! Following m_in(ii) - lines -  will overwrite this information.
+            !------------------------------------------------------------------------------
+            res_tokens = tokens
+            res_ntokens = ntokens
 
             !------------------------------------------------------------------------------
             ! Exit, if the keyword appears the first time in the programs scope.
@@ -737,7 +745,7 @@ END DO
 
 2011 CONTINUE
 
-IF((ntokens < dims+2) .AND. (kywd_found /= 0)) THEN
+IF((res_ntokens < dims+2) .AND. (kywd_found /= 0)) THEN
    CALL print_err_stop(std_out, "Data of keyword '"//TRIM(ADJUSTL(keyword))//"' invalid.", 1)
 END IF
 
@@ -876,6 +884,10 @@ CHARACTER(LEN=meta_mcl) :: tokens(30)
 
 CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens)
 
+write(*,*) "real_1D: ", real_1D
+write(*,*) "real_1D: ", 3, ":", 2+SIZE(real_1D)
+write(*,*) "real_1D: ", tokens(3)
+write(*,*) "real_1D: ", tokens(5)
 READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
 END SUBROUTINE meta_read_R1D
