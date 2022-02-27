@@ -14,7 +14,7 @@ if  ! which git > /dev/null 2> /dev/null; then
     echo "The program cannot compile if the »geb-lib« directory ist missing."
 fi
 #
-if  ls -l $PWD/geb-lib > /dev/null 2> /dev/null; then 
+if  ls -l "$PWD"/geb-lib > /dev/null 2> /dev/null; then 
     operation="pull"
 else
     operation="add"
@@ -23,3 +23,4 @@ fi
 git subtree $operation --prefix \
 geb-lib git@github.com:biomechanics-hlrs-gebert/A-A-GLI-Geberts-Library.git \
 main --squash
+
