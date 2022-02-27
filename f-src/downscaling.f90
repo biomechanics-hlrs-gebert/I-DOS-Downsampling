@@ -224,13 +224,13 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     WRITE(std_out, FMT_TXT) 'Reading data from *.meta file.'
 
-    CALL meta_read(std_out, 'ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft)
-    CALL meta_read(std_out, 'TYPE_RAW', m_rry, type)
-    CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
-    CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
+    CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft)
+    CALL meta_read('TYPE_RAW', m_rry, type)
+    CALL meta_read('SPACING'   , m_rry, spcng)
+    CALL meta_read('DIMENSIONS', m_rry, dims)
 
-    CALL meta_read(std_out, 'SCALE_FACTOR', m_rry, scale_factor_ik)
-    CALL meta_read(std_out, 'RESTART'     , m_rry, restart)
+    CALL meta_read('SCALE_FACTOR', m_rry, scale_factor_ik)
+    CALL meta_read('RESTART'     , m_rry, restart)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
@@ -402,14 +402,14 @@ END SELECT
 ! Finish program
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
-    CALL meta_write(fhmeo, 'PROCESSORS'       , '(-)', INT(size_mpi, KIND=ik))
-    CALL meta_write(fhmeo, 'SUBARRAY_SECTIONS', '(-)', sections_ik)
+    CALL meta_write('PROCESSORS'       , '(-)', INT(size_mpi, KIND=ik))
+    CALL meta_write('SUBARRAY_SECTIONS', '(-)', sections_ik)
     
-    CALL meta_write(fhmeo, 'DIMENSIONS'   , '(-)', new_glbl_rry_dims)
-    CALL meta_write(fhmeo, 'SPACING'      , '(-)', new_spacing)
-    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(-)', field_of_view)
-    CALL meta_write(fhmeo, 'ENTRIES'      , '(-)', PRODUCT(new_glbl_rry_dims))
-    CALL meta_write(fhmeo, 'ORIGIN_SHIFT_GLBL', '(mm)', origin_glbl_shft)
+    CALL meta_write('DIMENSIONS'   , '(-)', new_glbl_rry_dims)
+    CALL meta_write('SPACING'      , '(-)', new_spacing)
+    CALL meta_write('FIELD_OF_VIEW', '(-)', field_of_view)
+    CALL meta_write('ENTRIES'      , '(-)', PRODUCT(new_glbl_rry_dims))
+    CALL meta_write('ORIGIN_SHIFT_GLBL', '(mm)', origin_glbl_shft)
 
     CALL CPU_TIME(end)
 
