@@ -21,6 +21,6 @@ else
 fi
 #
 git subtree $operation --prefix \
-geb-lib git@github.com:biomechanics-hlrs-gebert/A-A-GLI-Geberts-Library.git \
+geb-lib git@github.com:biomechanics-hlrs-gebert/A-GLI-Geberts-Library.git \
 main --squash
 
