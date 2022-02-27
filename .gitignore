@@ -328,5 +328,3 @@ lib/lapack
 datasets/*
 *.zip
 
-## revision meta
-geb-lib/f-src/include_f90/revision_meta.f90

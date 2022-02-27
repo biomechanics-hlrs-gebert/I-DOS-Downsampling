@@ -1,24 +1,13 @@
 # ------------------------------------------------------------------------------
-# Makefile to build the File to Meta Format Converter
+# Makefile to build the centralized sources of the doctoral project of 
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-# Date:      13.09.2021
-# Last edit: 30.12.2021
+# Date:      27.12.2021
+# Last edit: 29.12.2021
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # ------------------------------------------------------------------------------
-bin_name="fmf"
-long_name="File to Meta Format Converter"
-# ------------------------------------------------------------------------------
-ifeq ($(PROVIDES_GIT),YES)
-# Get git hash https://jblevins.org/log/vc
-# rev = $(shell git describe --tags --always)
-	rev = $(shell git rev-parse HEAD)
-	trgt_vrsn = $(shell git describe --tags --abbrev=0 | tee .version)
-else
-	rev = NO_GIT_REPOSITORY
-	trgt_vrsn = $(shell cat .version)
-endif
+long_name="Centralized Sources"
 # -----------------------------------------------------------------------------
 # Check for environment
 check-env:
@@ -34,30 +23,21 @@ else
 endif
 # ------------------------------------------------------------------------------
 # Build path
-build_path = $(CURDIR)
-export build_path
+subtree_build_path = $(CURDIR)
+export subtree_build_path
 #
 # ------------------------------------------------------------------------------
-# Directories 
-# st: "Subtree" - A git procedure to inherit another repository as some sort of
-# submodule. https://gist.github.com/SKempin/b7857a6ff6bddb05717cc17a44091202
-st_path= $(build_path)/geb-lib/
-#
-st_obj_dir = $(st_path)/obj/
-st_mod_dir = $(st_path)/mod/
-st_f_src_dir = $(st_path)/f-src/
-#
-mod_dir   = $(build_path)/mod/
-obj_dir   = $(build_path)/obj/
-lib_dir   = $(build_path)/lib/
-bin_dir   = $(build_path)/bin/
-f_src_dir = $(build_path)/f-src/
-ext_f-src = $(build_path)/f-src/ext-src_
+# Directories
+mod_dir   = $(subtree_build_path)/mod/
+obj_dir   = $(subtree_build_path)/obj/
+c-src_dir = $(subtree_build_path)/c-src/
+f-src_dir = $(subtree_build_path)/f-src/
+ext_f-src = $(subtree_build_path)/f-src/ext-src_
 #
 # Directory for documentation
-doc_dir  = $(build_path)/doc/
-html_dir = $(build_path)/html/
-tex_dir  = $(build_path)/latex/
+doc_dir  = $(subtree_build_path)/doc/
+html_dir = $(subtree_build_path)/html/
+tex_dir  = $(subtree_build_path)/latex/
 #
 # ------------------------------------------------------------------------------
 # File extensions and suffixes
@@ -65,34 +45,31 @@ mod_ext = .mod
 obj_ext = .o
 sho_ext = .so
 f90_ext = .f90
-bin_suf = _x86_64
+c_ext = .c
 # ------------------------------------------------------------------------------
 clean_cmd = rm -f
 # ------------------------------------------------------------------------------
 # Compilers
-#ifeq($(strip $(trgt_arch)) ,"julius" )
-  compiler = "mpif90"
-#endif
-#ifeq($(strip $(trgt_arch)) ,"hawk" )
-#  compiler = "mpif90"
-#endif
-export compiler
+f90_compiler = "mpif90"
+export f90_compiler
+c_compiler = "gcc"
+export c_compiler
 # ------------------------------------------------------------------------------
 # Programming Environment - gnu, LLVM
 PE = gnu
 # ------------------------------------------------------------------------------
-# Compile mode - dev, prod
-compile_MODE = dev
+# Compile mode - dev, prod - Defined in environment.sh
+# compile_MODE = dev
 # ------------------------------------------------------------------------------
 # Compile flags GNU Compiler
 # The subtree structure requires two directories containing modules. 
 # In this case, the program root/mod directory addressed by the -J 
 # http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
 ifeq ($(PE),gnu)
-	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir)
+	f90_std_IJ     = -J$(mod_dir) -I$(subtree_build_path)
 	f90_dev_flags  = 	-fdefault-integer-8 -fdefault-real-8 \
 						-finstrument-functions -ggdb -o -O3 \
-						-fbacktrace -fbounds-check -fbackslash \
+						-fbacktrace -fbounds-check \
 						-Wno-conversion -Wall
 	f90_prod_flags = 	-fdefault-integer-8 -fdefault-real-8 \
 						-finstrument-functions -O3 -fbounds-check
@@ -104,67 +81,90 @@ ifeq ($(PE),gnu)
 	endif
 endif
 # ------------------------------------------------------------------------------
-# Executable
-main_bin = $(bin_dir)$(bin_name)_$(trgt_vrsn)$(bin_suf)
-# ------------------------------------------------------------------------------
 # Generate objects
 #
-f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
-			$(st_obj_dir)mod_strings$(obj_ext)\
-			$(st_obj_dir)mod_user_interaction$(obj_ext) \
-			$(st_obj_dir)mod_meta$(obj_ext) \
-			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
-			$(obj_dir)x_to_meta$(obj_ext)
-
-# ------------------------------------------------------------------------------
-# Build the st directory first
-st: 
-	$(MAKE) all -C $(st_path)
-	@echo 
+f-objects = $(obj_dir)mod_global_std$(obj_ext)\
+			$(obj_dir)mod_strings$(obj_ext)\
+			$(obj_dir)mod_math$(obj_ext)\
+			$(obj_dir)mod_mechanical$(obj_ext)\
+			$(obj_dir)mod_user_interaction$(obj_ext)\
+			$(obj_dir)mod_meta$(obj_ext)\
+			$(obj_dir)mod_vtk_raw$(obj_ext)\
+			$(obj_dir)mod_formatted_plain$(obj_ext)
 
 # ------------------------------------------------------------------------------
 # Begin Building
-all: st $(main_bin)  
+all: $(f-objects)
 
-
-# --------------------------------------------------------------------------------------------------
-# Main object
-$(obj_dir)x_to_meta$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(st_mod_dir)raw_binary$(mod_ext)\
-						 $(st_mod_dir)vtk_meta_data$(mod_ext)\
-						 $(f_src_dir)x_to_meta$(f90_ext)
-	@echo "-- Compiles: " $(f_src_dir)x_to_meta$(f90_ext)" -----"
-	$(compiler) $(c_flags_f90) -c $(f_src_dir)x_to_meta$(f90_ext) -o $@
+# ------------------------------------------------------------------------------
+# Standards Module
+$(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_global_std$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_global_std$(f90_ext) -o $@
 	@echo
 
-# --------------------------------------------------------------------------------------------------
-# Export revision
-export_revision:
-	@echo "----------------------------------------------------------------------------------"
-	@echo '-- Write revision and git info'
-	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "----------------------------------------------------------------------------------"
+# ------------------------------------------------------------------------------
+# Mechanical Module
+$(obj_dir)mod_mechanical$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_mechanical$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_mechanical$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_mechanical$(f90_ext) -o $@
+	@echo
 
+# ------------------------------------------------------------------------------
+# External source to parse input
+$(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strings$(f90_ext)
+	@echo "----- Compiling " $(ext_f-src)strings$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(ext_f-src)strings$(f90_ext) -o $@
+	@echo
+
+# ------------------------------------------------------------------------------
+# Math Module
+$(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	\
+							$(mod_dir)strings$(mod_ext)\
+							$(f-src_dir)mod_math$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_math$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_math$(f90_ext) -o $@
+	@echo
+	
+# -----------------------------------------------------------------------------
+# Module for User Interaction
+$(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
+									$(f-src_dir)mod_user_interaction$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_user_interaction$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_user_interaction$(f90_ext) -o $@
+	@echo 
 
 # -----------------------------------------------------------------------------
-# Final Link step of MAIN
-$(main_bin): export_revision $(f-objects)
-	@echo "----------------------------------------------------------------------------------"
-	@echo '-- Final link step of $(long_name) executable'
-	@echo "----------------------------------------------------------------------------------"
-	$(compiler) $(f-objects) -o $(main_bin)
+# Meta Module 
+$(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)user_interaction$(mod_ext) \
+							$(f-src_dir)mod_meta$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
+	@echo 
+
+# -----------------------------------------------------------------------------
+# Formatted Plain Module
+$(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)math$(mod_ext)\
+										$(f-src_dir)mod_formatted_plain$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_formatted_plain$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_formatted_plain$(f90_ext) -o $@
+	@echo 
+
+# ------------------------------------------------------------------------------
+# Module vtk structured points and raw data
+$(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
+								$(mod_dir)user_interaction$(mod_ext) \
+								$(f-src_dir)mod_vtk_raw$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
 	@echo
-	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Successfully build all."
-	@echo "----------------------------------------------------------------------------------"
 
 help:
 	@echo "----------------------------------------------------------------------------------"
-	@echo "-- $(long_name) make targets"
-	@echo "-- Regular:  »make (all)«    - Build the $(long_name)"
-	@echo "-- Cleaning: »make clean«    - Remove build files, keep the geb-lib"
-	@echo "-- Cleaning: »make cleanall« - Remove all build files."
-	@echo "-- Docs:     »make docs      - Build the html and the tex documentation."
+	@echo "Make targets"
+	@echo "Regular:       »make (all)«   - Build all $(long_name)."
+	@echo "Cleaning:      »make clean«   - Remove generated files, keep the config"
+	@echo "Documentation: »make docs     - Build the html and the tex documentation"
 	@echo "----------------------------------------------------------------------------------"
 
 docs: 
@@ -192,20 +192,10 @@ cleandocs:
 	
 clean:
 	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning module directory"
+	@echo "-- Cleaning geb-lib module directory"
 	@echo "----------------------------------------------------------------------------------"
 	$(clean_cmd) $(mod_dir)*$(mod_ext)
 	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning object directory"
+	@echo "-- Cleaning geb-lib object directory"
 	@echo "----------------------------------------------------------------------------------"
 	$(clean_cmd) $(obj_dir)*$(obj_ext)
-	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning MAIN binary"
-	@echo "----------------------------------------------------------------------------------"
-	$(clean_cmd) $(main_bin)
-	
-cleanall: clean
-	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning geb-lib st"
-	@echo "----------------------------------------------------------------------------------"
-	$(MAKE) clean -C $(st_path)
