@@ -1,13 +1,13 @@
 # ------------------------------------------------------------------------------
-# Makefile to build the DOSC-Downscaling
+# Makefile to build the DOS-Downscaling
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      15.01.2022
-# Last edit: 16.01.2022
+# Last edit: 27.02.2022
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # ------------------------------------------------------------------------------
-bin_name="dosc"
+bin_name="dos"
 long_name="Downscaling"
 # ------------------------------------------------------------------------------
 ifeq ($(PROVIDES_GIT),YES)
@@ -42,7 +42,7 @@ export build_path
 # Directories 
 # st: "Subtree" - A git procedure to inherit another repository as some sort of
 # submodule. https://gist.github.com/SKempin/b7857a6ff6bddb05717cc17a44091202
-st_path= $(build_path)/central_src/
+st_path= $(build_path)/geb-lib/
 #
 st_obj_dir = $(st_path)/obj/
 st_mod_dir = $(st_path)/mod/
@@ -167,7 +167,7 @@ help:
 	@echo "----------------------------------------------------------------------------------"
 	@echo "-- $(long_name) make targets"
 	@echo "-- Regular:  »make (all)«    - Build the $(long_name)"
-	@echo "-- Cleaning: »make clean«    - Remove build files, keep the central_src"
+	@echo "-- Cleaning: »make clean«    - Remove build files, keep the geb-lib"
 	@echo "-- Cleaning: »make cleanall« - Remove all build files."
 	@echo "-- Docs:     »make docs      - Build the html and the tex documentation."
 	@echo "----------------------------------------------------------------------------------"
@@ -211,6 +211,6 @@ clean:
 	
 cleanall: clean
 	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning central_src st"
+	@echo "-- Cleaning geb-lib st"
 	@echo "----------------------------------------------------------------------------------"
 	$(MAKE) clean -C $(st_path)
