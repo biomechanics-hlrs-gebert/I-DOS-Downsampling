@@ -96,8 +96,6 @@ IF (my_rank==0) THEN
     IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/temporary.std_out"
     WRITE(std_out, FMT_TXT) "Program invocation:"//TRIM(cmd_arg_history)          
 
-
-
     !------------------------------------------------------------------------------
     ! Check whether to convert from vtk to meta or the opposite way.
     !------------------------------------------------------------------------------
@@ -117,11 +115,8 @@ IF (my_rank==0) THEN
         !------------------------------------------------------------------------------
         WRITE(std_out, FMT_TXT) 'Determining the output data types.'
         SELECT CASE(type_in)
-            CASE('rk4') ; type_out = 'ik4'
-            CASE('rk8') ; type_out = 'ik4'
-            CASE('ik4') ; type_out = 'ik4'
+            CASE('rk4', 'rk8', 'ik4', 'uik2') ; type_out = 'ik4'
             CASE('ik2') ; type_out = 'ik2'
-            CASE('uik2'); type_out = 'ik4'
         END SELECT
 
         !------------------------------------------------------------------------------
@@ -183,7 +178,6 @@ IF (my_rank==0) THEN
 
         file_type_in = "meta"
         hdr = 0_ik
-
         type_in = type_out
 
     ELSE
@@ -271,13 +265,10 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Converting and writing binary informatio
 !------------------------------------------------------------------------------
 IF (file_type_in == "vtk") THEN
     suffix = raw_suf
-
     hdr = 0_8
-
     dtrep = 'NATIVE'
 ELSE IF (file_type_in == "meta") THEN
     suffix = vtk_suf
-
     dtrep = 'EXTERNAL32'
 
     !------------------------------------------------------------------------------
