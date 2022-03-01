@@ -11,8 +11,6 @@
 # is set to "julius". It needs configuration for example in the ~/.bashrc or the ~/.zshrc.
 # If you like to set up your system this way, please ensure the terminal colorizes the
 # output properly.
-# Setting the system 'julius' up this way is not mandatory, since it otherwise operates
-# like a standard x86 64 Bit notebook anyway.
 # ----------------------------------------------------------------------------------------
 if [[ "$SITE_NAME" == "julius" ]]; then
     red='\033[0;31m'
@@ -60,9 +58,6 @@ else
         echo "--------------------------------------------------------------------------------"
         echo "-- ${green}Setting environment${nc} for system: $1"
         echo "--"
-        export NO_OUTPUT=NO
-    else
-        export NO_OUTPUT=YES
     fi
     #
     #------------------------------------------------------------------------------
@@ -84,7 +79,7 @@ else
         test "$system" = "$1" && source "${sys_file}" && sys_set=1
         #
         # System
-        export SYS_ENV=$1
+        export SYS_ENV="$1"
     done
 
     if [ $sys_set -eq 0 ]; then
@@ -92,14 +87,12 @@ else
        echo "-- ${yellow}System ${red}$1 ${yellow}currently is not supported.${nc}"
        usage
     else
-	#
-	# ----------------------------------------
-	# PATH extensions
-	export PATH=${prefix}/bin:$PATH
-	#
-    if [ "$NO_OUTPUT" != "YES" ]; then
-	    echo "-- ${green}Done${nc}"
-	    echo "--------------------------------------------------------------------------------"
-	fi
+        # PATH extensions
+        export PATH=${prefix}/bin:$PATH
+        #
+        if [ "$2" != "--no-output" ]; then
+            echo "-- ${green}Done${nc}"
+            echo "--------------------------------------------------------------------------------"
+        fi
     fi
 fi
