@@ -75,10 +75,10 @@ else
     # Read the system environment directory
     sys_set=0
     #
-    for sys_file in "${sys_env_path}"*.sys
+    for sys_file in "${sys_env_path}"*.env
     do
     [[ -e "$sys_file" ]] || break  # handle the case of no *.wav files
-        system=$(basename -s .sys "$sys_file")
+        system=$(basename -s .env "$sys_file")
         #
         # shellcheck source=/dev/null
         test "$system" = "$1" && source "${sys_file}" && sys_set=1
