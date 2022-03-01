@@ -4,7 +4,7 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Created:   10.05.2021
-# Last edit: 21.01.2022
+# Last edit: 01.03.2022
 # ----------------------------------------------------------------------------------------
 # Set colors for text output
 # The colorization of the output is only turned on, if the environment variable SITE_NAME
@@ -30,14 +30,14 @@ fi
 # ----------------------------------------------------------------------------------------
 # System environment files
 #
-sys_env_path='/geb-lib/auxiliaries/system_environments/'
+sys_env_path='geb-lib/auxiliaries/system_environments/'
 # ----------------------------------------------------------------------------------------
 #
 usage ()
 {
     echo "-- "
     echo "-- Usage: "
-    echo "--      source environment.sh <system>"
+    echo "--      source environment.source <system>"
     echo "-- "
     echo "-- Environments available:"
     echo "--      ${green}hawk${nc}   - HLRS HPE Apollo"
@@ -52,13 +52,13 @@ usage ()
 #------------------------------------------------------------------------------
 prefix=$PWD
 #
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
     usage
 else
     #
     if [ "$2" != "--no-output" ]; then
         echo "--------------------------------------------------------------------------------"
-        echo "-- ${green}Setting environment${nc} for system: "$1
+        echo "-- ${green}Setting environment${nc} for system: $1"
         echo "--"
         export NO_OUTPUT=NO
     else
@@ -67,22 +67,21 @@ else
     #
     #------------------------------------------------------------------------------
     # Check current directory first
-    if [ ! -d $PWD${sys_env_path} ]; then
-        sys_env_path='/auxiliaries/system_environments/'
-
-        if [ ! -d $PWD${sys_env_path} ]; then
-            echo "-- Sys env directories do not exist."
-        fi
+    if [ ! -d "$PWD/"${sys_env_path} ]; then
+        echo "-- Sys env directories do not exist."
     fi
     #
     #------------------------------------------------------------------------------
     # Read the system environment directory
     sys_set=0
-    for sys_file in $(ls --color=never ${prefix}${sys_env_path})
+    #
+    for sys_file in "${sys_env_path}"*.sys
     do
-        system=$(basename -s .sh $sys_file)
+    [[ -e "$sys_file" ]] || break  # handle the case of no *.wav files
+        system=$(basename -s .sys "$sys_file")
         #
-        test $system = $1 && source ${prefix}${sys_env_path}${sys_file} && sys_set=1
+        # shellcheck source=/dev/null
+        test "$system" = "$1" && source "${sys_file}" && sys_set=1
         #
         # System
         export SYS_ENV=$1
@@ -98,7 +97,7 @@ else
 	# PATH extensions
 	export PATH=${prefix}/bin:$PATH
 	#
-    if [ "NO_OUTPUT" != "YES" ]; then
+    if [ "$NO_OUTPUT" != "YES" ]; then
 	    echo "-- ${green}Done${nc}"
 	    echo "--------------------------------------------------------------------------------"
 	fi
