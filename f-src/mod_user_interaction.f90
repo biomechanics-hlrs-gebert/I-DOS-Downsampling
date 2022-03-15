@@ -437,7 +437,7 @@ CHARACTER(LEN=*), INTENT(IN) :: text
 IF (error > 0) THEN
    WRITE(fh, FMT_ERR) TRIM(text)
    WRITE(fh, FMT_ERR_STOP)
-   WRITE(fh,FMT_ERR) "Can't stop gracefully."
+   WRITE(fh, FMT_ERR) "Can't stop gracefully."
    STOP 
 END IF
 
