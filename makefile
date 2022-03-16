@@ -163,7 +163,7 @@ $(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
 								$(mod_dir)user_interaction$(mod_ext) \
 								$(f-src_dir)mod_vtk_raw$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
 	@echo
 
 # -----------------------------------------------------------------------------
