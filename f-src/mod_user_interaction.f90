@@ -8,10 +8,10 @@
 !------------------------------------------------------------------------------
 MODULE user_interaction
 
-    USE ISO_FORTRAN_ENV
-    USE MPI
-    USE global_std
-    USE strings
+USE ISO_FORTRAN_ENV
+USE MPI
+USE global_std
+USE strings
 
 IMPLICIT NONE
 
@@ -84,6 +84,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAL     = ERR//xAL
 !------------------------------------------------------------------------------
 ! Text formats
 !------------------------------------------------------------------------------
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_STOP = "('-- Program finished.')"
+!
 CHARACTER(Len=*), PARAMETER :: FMT_TXT         = TXT//FMT
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP     = FMT_SEP ! "('-- ',80('-'))"
 !
@@ -107,6 +109,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAL     = TXT//xAL
 !------------------------------------------------------------------------------
 ! Message/debug formats
 !------------------------------------------------------------------------------
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_STOP = "('MM Program finished.')"
+!
 CHARACTER(Len=*), PARAMETER :: FMT_MSG         = MSG//FMT
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP     = FMT_SEP ! "('MM ',80('-'))"
 !
@@ -130,6 +134,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAL     = MSG//xAL
 !------------------------------------------------------------------------------
 ! Warning formats
 !------------------------------------------------------------------------------
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_STOP = "('WW Program halted.')"
+!
 CHARACTER(Len=*), PARAMETER :: FMT_WRN         = WRN//FMT
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP     = FMT_SEP ! "('WW ',80('-'))"
 !
@@ -188,6 +194,14 @@ CHARACTER(LEN=*), PARAMETER ::  FMT_Purple  = "\x1B[35m"
 CHARACTER(LEN=*), PARAMETER ::  FMT_Cyan    = "\x1B[36m"
 CHARACTER(LEN=*), PARAMETER ::  FMT_Gray    = "\x1B[37m"
 CHARACTER(LEN=*), PARAMETER ::  FMT_nocolor = "\x1B[0m"
+
+!> Interface: print_err_stop
+!> \author Johannes Gebert
+!> \date 16.03.2022
+INTERFACE print_err_stop
+    MODULE PROCEDURE print_err_stop_ik4
+    MODULE PROCEDURE print_err_stop_ik8
+END INTERFACE print_err_stop
 
 CONTAINS
 
@@ -412,8 +426,9 @@ subroutine mpi_err(ierr, text)
    
 end subroutine mpi_err
 
+
 !------------------------------------------------------------------------------
-! SUBROUTINE: print_err_stop
+! SUBROUTINE: print_err_stop_ik4
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -429,7 +444,39 @@ end subroutine mpi_err
 !> @param[in] text Error message to print
 !> @param[in] error Errorcode / status of the message
 !------------------------------------------------------------------------------  
-SUBROUTINE print_err_stop(fh, text, error) ! , pro_path, pro_name
+SUBROUTINE print_err_stop_ik4(fh, text, error)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(KIND=mik), INTENT(IN) :: error
+CHARACTER(LEN=*), INTENT(IN) :: text
+
+IF (error > 0) THEN
+   WRITE(fh, FMT_ERR) TRIM(text)
+   WRITE(fh, FMT_ERR_STOP)
+   WRITE(fh, FMT_ERR) "Can't stop gracefully."
+   STOP 
+END IF
+
+END SUBROUTINE print_err_stop_ik4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: print_err_stop_ik8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Stop a program.
+!
+!> @description
+!> Aborts non-gracefull with a stop on one processor if err > 0. 
+!> Err /= 0 is required to call this routine after another one 
+!> with a status feedback.
+!
+!> @param[in] fh Handle of file to print to
+!> @param[in] text Error message to print
+!> @param[in] error Errorcode / status of the message
+!------------------------------------------------------------------------------  
+SUBROUTINE print_err_stop_ik8(fh, text, error) ! , pro_path, pro_name
 
 INTEGER(KIND=ik), INTENT(IN) :: fh , error
 CHARACTER(LEN=*), INTENT(IN) :: text
@@ -441,8 +488,8 @@ IF (error > 0) THEN
    STOP 
 END IF
 
-END SUBROUTINE print_err_stop
-  
+END SUBROUTINE print_err_stop_ik8
+
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: estimated_time_of_arrival
