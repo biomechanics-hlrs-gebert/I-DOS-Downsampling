@@ -18,6 +18,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -34,23 +35,26 @@
 #define VTK_SUFFIX ".vtk"
 #define RAW_SUFFIX ".raw"
 // ---- META control macros ----
+//datatypes.
 #define META_MIK 4
 #define META_IK 8
 #define META_RK 8
-#define META_MCL 512
-#define META_SCL 64
+//string lengths
+#define META_MCL 512                    //meta max line length
+#define META_SCL 64                     //meta short string length
+#define META_KCL 25                     //Keyword max length
+#define META_STDSPC 39                  //Keyword standard space (parameter max length)
+#define META_UCL 8                      //Unit max length
+//string symbols
+#define META_LOCK_SUFFIX ".lock"
 #define META_SUFFIX_DECLARATOR "."
-#define META_KEYWORD_MAX_LENGTH 16
-#define META_PARAMETER_MAX_LENGTH 32
-#define META_UNIT_MAX_LENGTH 8
-#define META_TIME_MAX_LENGTH 16
-#define META_EXTRA_LENGTH 64
-#define META_MAX_FILE_LINES 1024
 #define META_BASENAME_SEPARATOR "_"
 #define META_KEYWORD_SEPARATOR " "
 #define META_SECTION_DECLARATOR "**"
 #define META_KEYWORD_DECLARATOR "*"
-#define META_COMMENT_DECLARATOR "!"
+//static array lengths
+//TODO replace with dynamic allocation on the heap
+#define META_MAX_FILE_LINES 1024
 #define META_MAX_NUMBER_OF_KEYWORD_ITERATIONS 16
 /**
 * Define the behavior of multile occurences of meta file keyword
@@ -74,9 +78,9 @@
 * The size a meta file line may be long at maximum. It is composed of the individual specifiers
 */
 #ifndef META_MCL
-    #define META_MCL (META_KEYWORD_MAX_LENGTH + META_PARAMETER_MAX_LENGTH + META_UNIT_MAX_LENGTH + META_TIME_MAX_LENGTH + META_EXTRA_LENGTH)
+    #define META_MCL (META_KCL + META_STDSPC + META_UCL + META_TIME_MAX_LENGTH)
 #else
-    #if META_MCL < (META_KEYWORD_MAX_LENGTH + META_PARAMETER_MAX_LENGTH + META_UNIT_MAX_LENGTH + META_TIME_MAX_LENGTH + META_EXTRA_LENGTH)
+    #if META_MCL < (META_KCL + META_STDSPC + META_UCL + META_TIME_MAX_LENGTH)
         #error META_MCL too small
     #endif
 #endif
@@ -118,10 +122,14 @@ typedef struct {
 /**
 * \brief static global variables (only meta library internals)
 */
-static char * global_meta_program_keyword;
-static char * global_meta_prgrm_mstr_app;
+/* TODO
+* use long variable names:
+* WARNING: fh_meta_put was here renamed to fh_meta_out !!
+*/
+char * global_meta_program_keyword;
+char * global_meta_prgrm_mstr_app;
 static FILE * fh_meta_in;
-static FILE * fh_meta_put;
+static FILE * fh_meta_out;
 static FILE * fh_mon;
 static FILE * fh_out;
 static FILE * fh_log;
@@ -133,50 +141,49 @@ static FILE * fh_vtk;
 static FILE * fh_raw;
 static basename in;
 static basename out;
+static clock_t meta_start;
+static clock_t meta_end;
 
 
 // ==== function declarations ====
 
 //public interaction (read) function declarations
-int meta_read_string(FILE *, char *, metafile *, char *);
-int meta_read_int_0D(FILE *, char *, metafile *, int *);
-int meta_read_int_1D(FILE *, char *, metafile *, int[DIMENSIONS]);
-int meta_read_double_0D(FILE *, char *, metafile *, double *);
-int meta_read_double_1D(FILE *, char *, metafile *, double[DIMENSIONS]);
+int meta_read_string(char *, metafile *, char *);
+int meta_read_int_0D(char *, metafile *, int *);
+int meta_read_int_1D(char *, metafile *, int dims, int[dims]);
+int meta_read_double_0D(char *, metafile *, double *);
+int meta_read_double_1D(char *, metafile *, int dims, double[dims]);
 
 //public interactions (write) function declarations
-int meta_write_int_0D(FILE *, char *, char *, int, int);
-int meta_write_int_1D(FILE *, char *, char *, int, int[DIMENSIONS]);
-int meta_write_long_0D(FILE *, char *, char *, int, long long);
-int meta_write_long_1D(FILE *, char *, char *, int, long long[DIMENSIONS]);
-int meta_write_double_0D(FILE *, char *, char *, int, double);
-int meta_write_double_1D(FILE *, char *, char *, int, double[DIMENSIONS]);
-int meta_write_string(FILE *, char *, char *, int, char *);
+int meta_write_int_0D(char *, char *, int);
+int meta_write_int_1D(char *, char *, int dims, int[dims]);
+int meta_write_long_0D(char *, char *, long long);
+int meta_write_long_1D(char *, char *, int dims, long long[dims]);
+int meta_write_double_0D(char *, char *, double);
+int meta_write_double_1D(char *, char *, int dims, double[dims]);
+int meta_write_string(char *, char *);
 
 //public direct file interactions
-int meta_handle_lock_file(char, char);
+int meta_handle_lock_file(char *, char *);
 int meta_append(metafile *);
 int meta_create_new(char *);
 int meta_invoke(metafile *);
 int meta_continue(metafile *);
-int meta_start_ascii(FILE *, char *);
+int meta_start_ascii(FILE **, char *);
 int meta_stop_ascii(FILE *, char *);
-int meta_existing_ascii(FILE *, char *, int *)
+int meta_existing_ascii(FILE **, char *, int *);
 int meta_signing(char *);
 int meta_close(int);
 
 //public helper function declarations
 size_t meta_get_filesize(basename *);
 size_t meta_count_lines(FILE *);
-char *meta_get_metafile_string_reference(metafile *, int);
 int meta_parse_basename(char *, char *);
-int meta_check_unit(FILE *, char *);
-int meta_check_keyword(FILE *, char *);
+int meta_check_unit(char *);
+int meta_check_keyword(char *);
 int meta_write_sha256sum(char *);
 int meta_delete_empty_file(char *);
-int meta_extract_keyword_data(FILE *, char *, int , metafile *, char[DIMENSIONS][META_MCL], char[META_MCL]);
-int meta_write_keyword(FILE *, char *, char *, char *, int);
-int meta_get_metafile_string_copy(metafile *, int, char *);
-int meta_set_metafile_string(metafile *, int, char *);
+int meta_extract_keyword_data(char *, int dims, metafile *, char[dims][META_MCL]);
+int meta_write_keyword(char *, char *, char *);
 
 #endif
