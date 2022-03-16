@@ -971,7 +971,7 @@ int meta_signing(char *binary){
 
     if(meta_write_string("PROGRAM_VERSION", token))
         return 1;
-    if(meta_write_string("PROGRAM_GIT_HASH", /*global*/ hash)) //TODO: error : Hash is not defined
+    if(meta_write_string("PROGRAM_GIT_HASH", /*global*/ hash))
         return 1;
     if(meta_write_sha256sum(binary))
         return 1;
@@ -1658,7 +1658,7 @@ static int __meta_print_error(FILE *fh, char *message, int error){
     if(fh == NULL)
         return 1;
 
-    char errormessage[message != NULL ? strlen(message) : 60];
+    char errormessage[message != NULL ? strlen(message) + 1 : 61];
     if(message != NULL)
         strcpy(errormessage, message);
     else
