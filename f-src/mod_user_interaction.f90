@@ -443,14 +443,13 @@ end subroutine mpi_err
 !------------------------------------------------------------------------------  
 SUBROUTINE print_err_stop_ik4(fh, text, error)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(KIND=ik),  INTENT(IN) :: fh
 INTEGER(KIND=mik), INTENT(IN) :: error
-CHARACTER(LEN=*), INTENT(IN) :: text
+CHARACTER(LEN=*),  INTENT(IN) :: text
 
 IF (error > 0) THEN
    WRITE(fh, FMT_ERR) TRIM(text)
    WRITE(fh, FMT_ERR_STOP)
-   WRITE(fh, FMT_ERR) "Can't stop gracefully."
    STOP 
 END IF
 
@@ -481,7 +480,6 @@ CHARACTER(LEN=*), INTENT(IN) :: text
 IF (error > 0) THEN
    WRITE(fh, FMT_ERR) TRIM(text)
    WRITE(fh, FMT_ERR_STOP)
-   WRITE(fh, FMT_ERR) "Can't stop gracefully."
    STOP 
 END IF
 

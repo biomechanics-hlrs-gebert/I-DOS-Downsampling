@@ -3,8 +3,14 @@
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
-! @Description:
+! @Brief:
 !> Module containing all meta file read/write routines.
+!
+! @Description:
+!> It is strongly advised, to check the existance of the file before calling 
+!> these functions and routines. In case of an error, this library will 
+!> invoke an STOP and therefore MPI_ABORT operation with the program exiting
+!> improperly.
 !------------------------------------------------------------------------------
 MODULE meta
 
