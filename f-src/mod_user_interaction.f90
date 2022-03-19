@@ -284,10 +284,13 @@ END SUBROUTINE get_cmd_args
 !> @brief
 !> Show brief information about the program. Variables from global_std module!
 !------------------------------------------------------------------------------
-SUBROUTINE show_title(authors)
+SUBROUTINE show_title(authors, longname_opt)
 
 CHARACTER(LEN=*), DIMENSION(:), INTENT(IN) :: authors
+CHARACTER(LEN=*), OPTIONAL,     INTENT(IN) :: longname_opt
 INTEGER(KIND=ik) :: ii
+
+IF(PRESENT(longname_opt)) longname = TRIM(ADJUSTL(longname_opt))
 
 WRITE(std_out, FMT_TXT_SEP)
 WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
