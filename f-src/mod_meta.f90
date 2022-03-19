@@ -20,7 +20,6 @@ MODULE meta
 
 IMPLICIT NONE
 
-
    INTEGER, PARAMETER :: meta_mik = 4
    INTEGER, PARAMETER :: meta_ik = 8
    INTEGER, PARAMETER :: meta_rk = 8

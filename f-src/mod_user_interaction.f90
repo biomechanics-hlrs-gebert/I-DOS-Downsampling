@@ -288,14 +288,20 @@ SUBROUTINE show_title(authors, longname_opt)
 
 CHARACTER(LEN=*), DIMENSION(:), INTENT(IN) :: authors
 CHARACTER(LEN=*), OPTIONAL,     INTENT(IN) :: longname_opt
+
+CHARACTER(LEN=scl):: app_name
 INTEGER(KIND=ik) :: ii
 
-IF(PRESENT(longname_opt)) longname = TRIM(ADJUSTL(longname_opt))
+IF(PRESENT(longname_opt)) THEN
+    app_name = TRIM(ADJUSTL(longname_opt))
+ELSE
+    app_name = longname
+END IF 
 
 WRITE(std_out, FMT_TXT_SEP)
 WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
 WRITE(std_out, FMT_TXT) ''
-WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(longname))
+WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(app_name))
 WRITE(std_out, FMT_TXT) ''     
 
 DO ii=1, SIZE(authors)
@@ -316,14 +322,25 @@ END SUBROUTINE show_title
 !> Print program usage. 
 !
 !> @param[in] this_binary Name of the binary - for example parsed from cmd args
+!> @param[in] additional_text Additional usage information
 !------------------------------------------------------------------------------  
-SUBROUTINE usage(this_binary)
+SUBROUTINE usage(this_binary, additional_text)
 
 CHARACTER(LEN=*), INTENT(IN) :: this_binary
+CHARACTER(LEN=*), DIMENSION(:), INTENT(IN), OPTIONAL :: additional_text
+
+INTEGER :: ii
 
 WRITE(std_out, FMT_TXT) 'Usage:'
 WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(this_binary))//' '//'<flags> <basename.meta>'
 WRITE(std_out, FMT_TXT) ''
+
+IF(PRESENT(additional_text)) THEN
+    DO ii = 1, SIZE(additional_text)
+        WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(additional_text(ii)))
+    END DO
+END IF 
+
 WRITE(std_out, FMT_TXT) '-h/ --help      This message.'
 WRITE(std_out, FMT_TXT) '-v/ --version   Version of the program'
 WRITE(std_out, FMT_TXT) '--restart       Overwrite restart keyword'
@@ -451,9 +468,11 @@ INTEGER(KIND=mik), INTENT(IN) :: error
 CHARACTER(LEN=*),  INTENT(IN) :: text
 
 IF (error > 0) THEN
-   WRITE(fh, FMT_ERR) TRIM(text)
-   WRITE(fh, FMT_ERR_STOP)
-   STOP 
+    ! TODO: Repair this routine :-)
+    ! CALL print_trimmed_text(fh, TRIM(text), FMT_ERR)
+    WRITE(fh, FMT_ERR) TRIM(text)
+    WRITE(fh, FMT_ERR_STOP)
+    STOP 
 END IF
 
 END SUBROUTINE print_err_stop_ik4
@@ -481,9 +500,11 @@ INTEGER(KIND=ik), INTENT(IN) :: fh , error
 CHARACTER(LEN=*), INTENT(IN) :: text
 
 IF (error > 0) THEN
-   WRITE(fh, FMT_ERR) TRIM(text)
-   WRITE(fh, FMT_ERR_STOP)
-   STOP 
+    ! TODO: Repair this routine :-)
+    ! CALL print_trimmed_text(fh, TRIM(text), FMT_ERR)
+    WRITE(fh, FMT_ERR) TRIM(text)
+    WRITE(fh, FMT_ERR_STOP)
+    STOP 
 END IF
 
 END SUBROUTINE print_err_stop_ik8
@@ -526,5 +547,105 @@ SUBROUTINE estimated_time_of_arrival(sec, string)
     END IF
 
 END SUBROUTINE estimated_time_of_arrival
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: print_trimmed_text
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Prints a text with a specified width
+!
+!> @param[in] fh to print to
+!> @param[in] instring Input string
+!> @param[out] outstring Output string
+!------------------------------------------------------------------------------  
+SUBROUTINE print_trimmed_text (fh , instring, frmt)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+CHARACTER(LEN=*), INTENT(IN) :: instring
+CHARACTER(LEN=*), INTENT(IN) :: frmt
+
+CHARACTER(LEN=mcl) :: text, sub_mssg
+CHARACTER(LEN=mcl)   :: delim, tokens(100), path_tokens(50)
+CHARACTER(LEN=mcl+1) :: next_token
+
+INTEGER(KIND=ik) :: ntokens, path_ntokens, ii, jj, sw, mode
+
+mode = 0                ! Absolute or relative path
+sw = 2                  ! Whether it's the beginning or within a path
+ntokens = 0             ! Amount of words in message
+path_ntokens = 0        ! Amount of words in a path
+delim = '/'
+sub_mssg = ''
+ii = 1
+jj = 1
+
+text = TRIM(ADJUSTL(instring))
+
+IF (instring  /= '') THEN
+
+    !------------------------------------------------------------------------------  
+    ! Parse error message
+    !------------------------------------------------------------------------------  
+    CALL parse(str=text, delims=' ', args = tokens, nargs=ntokens)
+
+    !------------------------------------------------------------------------------  
+    ! next_token  = tokens(1) 
+    !------------------------------------------------------------------------------  
+    next_token = ''
+
+    DO WHILE (ii .LT. ntokens) 
+    
+        sub_mssg = REPEAT(' ', scl)
+        sub_mssg = TRIM(next_token)
+
+        DO           
+            !------------------------------------------------------------------------------  
+            ! path_ntokens = 1
+            !------------------------------------------------------------------------------  
+            IF (sw==2) CALL parse(str = tokens(ii), delims='/', args = path_tokens, nargs = path_ntokens)
+
+            IF (path_ntokens .GT. 1) sw=1
+            
+            IF (sw == 1) THEN
+                IF (TRIM(ADJUSTL(path_tokens(1))) =='') mode = 2
+                
+                IF ((mode == 2) .AND. (jj == 1)) jj = jj + 1
+                IF ((mode == 2) .AND. (jj == 2)) THEN
+                    delim = ' /'
+                ELSE
+                    delim = '/'
+                END IF
+
+                next_token = TRIM(delim)//ADJUSTL(path_tokens(jj))
+
+                jj = jj + 1                         
+                IF (jj .GT. path_ntokens) THEN
+                    sw   = 2
+                    jj   = 1
+                    mode = 1
+                    ii   = ii + 1
+                END IF
+            ELSE
+                next_token = ' '//tokens(ii)
+                ii = ii + 1
+                IF (ii .GT. ntokens+1) EXIT
+            END IF
+                        
+            IF ((LEN_TRIM(ADJUSTL(sub_mssg)) + LEN_TRIM(next_token)) .LT. scl) THEN
+                sub_mssg = TRIM(ADJUSTL(sub_mssg))//TRIM(next_token)
+            ELSE
+                EXIT ! Finishes the current line with scl characters
+            END IF
+        END DO
+
+        WRITE(fh, frmt) sub_mssg
+
+    END DO
+
+END IF ! (instring  /= '') THEN
+
+END SUBROUTINE print_trimmed_text
 
 END MODULE user_interaction
