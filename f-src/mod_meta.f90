@@ -142,7 +142,8 @@ IF((restart == 'N') .AND. (exist)) THEN
 
    INQUIRE (FILE = out%full, EXIST = exist)
 
-   ! Delete out meta if the lock file was set.
+   ! Delete out meta if the lock file was set. Otherwise, deleting it manually
+   ! would be cumbersome
    IF (exist) CALL execute_command_line ('rm '//TRIM(out%full))
 
    CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), 1_meta_ik)
@@ -370,8 +371,6 @@ OPEN(UNIT=fhmeo, FILE=TRIM(out%full), ACTION='WRITE', ACCESS='APPEND', STATUS='O
 WRITE(fhmeo, '(A)')
 
 END SUBROUTINE meta_continue
-
-
 
 
 !------------------------------------------------------------------------------
@@ -691,6 +690,54 @@ ELSE
 END IF
 
 END SUBROUTINE check_unit
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_check_contains_program
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Check if the requested program is documented in the meta file
+!
+!> @param[in] program_id program_id to read
+!> @param[in] dims Dimensions requested
+!> @param[in] m_in Array of lines of ascii meta file
+!> @param[in] chars Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_check_contains_program (program_id, m_in, success)
+   
+CHARACTER(LEN=*), INTENT(IN) :: program_id
+CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in
+LOGICAL :: success, prog_id_found
+
+INTEGER(KIND=meta_ik) :: ii, ntokens
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+
+success = .FALSE.
+prog_id_found = .FALSE.
+
+!------------------------------------------------------------------------------
+! Parse Data out of the input array
+!------------------------------------------------------------------------------
+DO ii =1, SIZE(m_in) 
+   CALL parse(str=m_in(ii), delims=' ', args=tokens, nargs=ntokens)
+
+   !------------------------------------------------------------------------------
+   ! Check for program id
+   !------------------------------------------------------------------------------
+   IF (tokens(1) == 'p') THEN
+      IF (tokens(2) == TRIM(program_id)) prog_id_found = .TRUE.
+   END IF
+
+   !------------------------------------------------------------------------------
+   ! If program id was found - check for the finished tag.
+   ! Now, we can safely assume, that the requested program run successfully.
+   !------------------------------------------------------------------------------
+   IF ((prog_id_found) .AND. (tokens(2) == "FINISHED_WALLTIME")) success = .TRUE.
+END DO
+
+END SUBROUTINE meta_check_contains_program
 
 
 !------------------------------------------------------------------------------

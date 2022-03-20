@@ -106,21 +106,21 @@ all: $(f-objects) $(c-objects)
 # ------------------------------------------------------------------------------
 # Fortran Standards Module
 $(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_global_std$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_global_std$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_global_std$(f90_ext) -o $@
 	@echo
 
 # ------------------------------------------------------------------------------
 # Fortran Mechanical Module
 $(obj_dir)mod_mechanical$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_mechanical$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_mechanical$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_mechanical$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_mechanical$(f90_ext) -o $@
 	@echo
 
 # ------------------------------------------------------------------------------
 # Fortran External source to parse input
 $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strings$(f90_ext)
-	@echo "----- Compiling " $(ext_f-src)strings$(f90_ext) " -----"
+	@echo "----- Compiling " $(ext_f-src)strings$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(ext_f-src)strings$(f90_ext) -o $@
 	@echo
 
@@ -129,7 +129,7 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 $(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	\
 							$(mod_dir)strings$(mod_ext)\
 							$(f-src_dir)mod_math$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_math$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_math$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_math$(f90_ext) -o $@
 	@echo
 	
@@ -137,7 +137,7 @@ $(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	\
 # Fortran Module for User Interaction
 $(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
 									$(f-src_dir)mod_user_interaction$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_user_interaction$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_user_interaction$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_user_interaction$(f90_ext) -o $@
 	@echo 
 
@@ -145,7 +145,7 @@ $(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_di
 # Fortran Meta Module 
 $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)user_interaction$(mod_ext) \
 							$(f-src_dir)mod_meta$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
 	@echo 
 
@@ -153,7 +153,7 @@ $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)user_interact
 # Fortran Formatted Plain Module
 $(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)math$(mod_ext)\
 										$(f-src_dir)mod_formatted_plain$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_formatted_plain$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_formatted_plain$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_formatted_plain$(f90_ext) -o $@
 	@echo 
 
@@ -162,14 +162,14 @@ $(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir
 $(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
 								$(mod_dir)user_interaction$(mod_ext) \
 								$(f-src_dir)mod_vtk_raw$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
+	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) "-----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
 	@echo
 
 # -----------------------------------------------------------------------------
 # C Meta Module 
 $(c-obj_dir)mod_meta$(obj_ext):$(c-src_dir)mod_meta$(c_ext)
-	@echo "----- Compiling " $(c-src_dir)mod_meta$(c_ext) " -----"
+	@echo "----- Compiling " $(c-src_dir)mod_meta$(c_ext) "-----"
 	$(c_compiler) $(c_flags_c) -c $(c-src_dir)mod_meta$(c_ext) -o $@
 	@echo 
 

@@ -415,7 +415,7 @@ END SUBROUTINE parse_tensor_2nd_rank_R66_row
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
-!> Write a tensor_2nd_rank_R66 into a row of a tensor_2nd_rank_R66 file
+!> Write a tensor_2nd_rank_R66 into a row of a tensor_2nd_rank_R66 file.
 !
 !> @param[in] fh File handle, the header will be written to
 !> @param[in] tensor_of_row The resulting TYPE tensor_2nd_rank_R66 file
@@ -426,15 +426,20 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 TYPE(tensor_2nd_rank_R66), INTENT(IN) :: tensor_of_row
 
 INTEGER(KIND=ik) :: ii, jj
+
+!------------------------------------------------------------------------------  
+! The formats are independent of other plain text formats to extract a higher
+! number of digits, which maintains accuracy better.
+!------------------------------------------------------------------------------  
 CHARACTER(Len=*), PARAMETER :: FINT = "(I0, A)"
 CHARACTER(Len=*), PARAMETER :: FREAL = "(F0.10, A)"
-
+CHARACTER(Len=*), PARAMETER :: FSCI  = "(E0.10, A)"
 
 WRITE(fh, FINT,  ADVANCE='NO') tensor_of_row%dmn, ", "
 WRITE(fh, FREAL, ADVANCE='NO') tensor_of_row%density, ", "
 WRITE(fh, FREAL, ADVANCE='NO') tensor_of_row%doa_zener, ", "
 WRITE(fh, FREAL, ADVANCE='NO') tensor_of_row%doa_gebert, ", "
-WRITE(fh, FREAL, ADVANCE='NO') tensor_of_row%sym, ", "
+WRITE(fh, FSCI , ADVANCE='NO') tensor_of_row%sym, ", "
 
 DO ii=1, 3
     WRITE(fh, FREAL, ADVANCE='NO') tensor_of_row%pos(ii), ", "
