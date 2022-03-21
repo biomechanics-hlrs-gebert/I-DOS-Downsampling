@@ -581,14 +581,12 @@ sub_mssg = ''
 ii = 1
 jj = 1
 
-text = TRIM(ADJUSTL(instring))
-
 IF (instring  /= '') THEN
 
     !------------------------------------------------------------------------------  
     ! Parse error message
     !------------------------------------------------------------------------------  
-    CALL parse(str=text, delims=' ', args = tokens, nargs=ntokens)
+    CALL parse(str=TRIM(ADJUSTL(instring)), delims=' ', args = tokens, nargs=ntokens)
 
     !------------------------------------------------------------------------------  
     ! next_token  = tokens(1) 
@@ -640,7 +638,7 @@ IF (instring  /= '') THEN
             END IF
         END DO
 
-        WRITE(fh, frmt) sub_mssg
+        WRITE(fh, frmt) TRIM(sub_mssg)
 
     END DO
 

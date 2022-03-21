@@ -204,12 +204,13 @@ END SUBROUTINE meta_compare_restart
 !
 !> @param[inout] meta_as_rry Meta data written into a character array
 !------------------------------------------------------------------------------  
-SUBROUTINE meta_append(meta_as_rry)
+SUBROUTINE meta_append(meta_as_rry, size_mpi)
 
 CHARACTER(LEN=meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry      
+INTEGER(KIND=meta_mik), INTENT(IN) :: size_mpi
 
 CALL meta_invoke(meta_as_rry)
-CALL meta_continue(meta_as_rry)
+CALL meta_continue(meta_as_rry, size_mpi)
 
 CALL meta_write('META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
  
@@ -328,9 +329,10 @@ END SUBROUTINE meta_invoke
 !
 !> @param[inout] m_in Meta data written into a character array
 !------------------------------------------------------------------------------  
-SUBROUTINE meta_continue(m_in)
+SUBROUTINE meta_continue(m_in, size_mpi)
 
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
+INTEGER(KIND=meta_mik), INTENT(IN) :: size_mpi
 
 INTEGER(KIND=meta_ik) :: ios
 
@@ -369,6 +371,8 @@ CALL print_err_stop(std_out, 'The update of the meta filename went wrong.', ios)
 OPEN(UNIT=fhmeo, FILE=TRIM(out%full), ACTION='WRITE', ACCESS='APPEND', STATUS='OLD')
 
 WRITE(fhmeo, '(A)')
+
+CALL meta_write('PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
 
 END SUBROUTINE meta_continue
 
@@ -1324,12 +1328,9 @@ END SUBROUTINE meta_signing
 !> @description
 !> provided by a makefile. Furhermore, it requires a global_stds file.
 !------------------------------------------------------------------------------
-SUBROUTINE meta_close(size_mpi)
+SUBROUTINE meta_close()
 
-INTEGER(KIND=meta_mik) :: size_mpi
 LOGICAL :: opened
-
-CALL meta_write('PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
 
 CALL CPU_TIME(meta_end)
 
@@ -1346,7 +1347,6 @@ IF(opened) CLOSE (fhmei)
 
 INQUIRE(UNIT=fhmeo, OPENED=opened)
 IF(opened) CLOSE (fhmeo)
-
  
 END SUBROUTINE meta_close
 
@@ -1456,9 +1456,10 @@ END IF
 
 !------------------------------------------------------------------------------
 ! Gather the size of the resulting stream
+! Existance of the file is not necessarily required.
 !------------------------------------------------------------------------------
 INQUIRE(FILE=TRIM(in%p_n_bsnm)//raw_suf, EXIST=fex, SIZE=rawsize)
-IF(.NOT. fex) CALL print_err_stop(stdout, TRIM(in%p_n_bsnm)//raw_suf//" does not exist.", 1)
+! IF(.NOT. fex) CALL print_err_stop(stdout, TRIM(in%p_n_bsnm)//raw_suf//" does not exist.", 1)
 
 !------------------------------------------------------------------------------
 ! Read all required keywords to write the information ino the PureDat format
@@ -1476,7 +1477,7 @@ CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_shift)
 CALL meta_read('TYPE_RAW', m_rry, datatype)
 
 !------------------------------------------------------------------------------
-! Rename the raw file and enter the stda
+! Handle the stream files
 !------------------------------------------------------------------------------
 suf=''
 rawdata=0
@@ -1504,14 +1505,24 @@ SELECT CASE(TRIM(datatype))
 END SELECT
 
 IF(suf /= '') THEN
-   INQUIRE(FILE=TRIM(out%p_n_bsnm)//TRIM(suf), EXIST=fex)
-   IF(fex) CALL print_err_stop(stdout, TRIM(out%p_n_bsnm)//TRIM(suf)//" already exists.", 1)
+    INQUIRE(FILE=TRIM(in%p_n_bsnm)//TRIM(suf), EXIST=fex)
 
-   CALL EXECUTE_COMMAND_LINE &
-      ("mv "//TRIM(in%p_n_bsnm)//".raw "//TRIM(in%p_n_bsnm)//TRIM(suf), CMDSTAT=stat)
+    IF(fex) THEN 
+        CONTINUE
+    ELSE
+        INQUIRE(FILE=TRIM(in%p_n_bsnm)//".raw ", EXIST=fex)
+    
+        IF (fex) THEN
+            CALL EXECUTE_COMMAND_LINE &
+                ("cp -r "//TRIM(in%p_n_bsnm)//".raw "//TRIM(in%p_n_bsnm)//TRIM(suf), CMDSTAT=stat)
 
-   IF(stat /= 0) CALL print_err_stop(stdout, &
-      "Renaming "//TRIM(in%p_n_bsnm)//".raw to "//TRIM(in%p_n_bsnm)//TRIM(suf)//" failed.", 1)
+            WRITE(std_out, FMT_WRN) "Raw file copied to int4 stream! May take/took a while..."
+
+            IF(stat /= 0) CALL print_err_stop(stdout, &
+                "Renaming "//TRIM(in%p_n_bsnm)//".raw to "//TRIM(in%p_n_bsnm)//TRIM(suf)//" failed.", 1)
+        END IF 
+    END IF
+
 ELSE
    CALL print_err_stop(stdout, 'No datatype given to convert meta/raw to PureDat.', 1)
 END IF
@@ -1533,7 +1544,7 @@ WRITE(fhh, PDM_branch)
 WRITE(fhh, PDM_arrowsA) "description", "'"//TRIM(branch_description)//"'"
 WRITE(fhh, PDM_arrowsI0) "no_of_branches", 0
 WRITE(fhh, PDM_arrowsI0) "no_of_leaves", 6 
-WRITE(fhh, PDM_arrowsL) "streams_allocated", .TRUE.  
+WRITE(fhh, PDM_arrowsL)  "streams_allocated", .TRUE.  
 WRITE(fhh, PDM_arrowsI0) "size_int1_stream", stda(1,1)
 WRITE(fhh, PDM_arrowsI0) "size_int2_stream", stda(2,1)
 WRITE(fhh, PDM_arrowsI0) "size_int4_stream", stda(3,1) + 6 ! origin, d)
