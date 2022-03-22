@@ -296,12 +296,12 @@ int meta_write_string(char *keyword, char *value){
 int meta_handle_lock_file(char *restart, char *restart_cmdarg){
     if(restart == NULL)
         return 1;
-    if(META_LOCK_SUFFIX == NULL)
+    if(LOCK_SUFFIX == NULL)
         return 1;
     
     bool exist = false;
     int error;
-    char lockname[2 * META_MCL + strlen(META_LOCK_SUFFIX) + 1], command[META_MCL + 3], *ptr;
+    char lockname[2 * META_MCL + strlen(LOCK_SUFFIX) + 1], command[META_MCL + 3], *ptr;
     char *message;
     
     if(restart_cmdarg != NULL){
@@ -324,7 +324,7 @@ int meta_handle_lock_file(char *restart, char *restart_cmdarg){
     ptr = __meta_fast_strcat(ptr, /*global*/ in.path);
     ptr = __meta_fast_strcat(ptr, ".");
     ptr = __meta_fast_strcat(ptr, /*global*/ in.basename);
-    ptr = __meta_fast_strcat(ptr, META_LOCK_SUFFIX);
+    ptr = __meta_fast_strcat(ptr, LOCK_SUFFIX);
 
     if(ptr == NULL)
         return 1;
@@ -408,7 +408,7 @@ int meta_extract_keyword_data(char *keyword, int dims, metafile *m_in, char res_
         }
 
         //handle new keyword
-        else if(!strcmp(token, META_KEYWORD_DECLARATOR)){
+        else if(!strcmp(token, META_KEYWORD_READ_DECLARATOR) || !strcmp(token, META_KEYWORD_WRITE_DECLARATOR)){
             token = strtok(NULL, META_KEYWORD_SEPARATOR);
             if(token == NULL) 
                 return 1; //Error: no keyword specified
@@ -425,9 +425,9 @@ int meta_extract_keyword_data(char *keyword, int dims, metafile *m_in, char res_
                 }
             }
         }
-        else 
-            return 1;
-    }
+        else
+            continue; //skip the uninterpretable line
+    
     if(!keyword_found) 
         return 1; //the whole file does not contain the required keyword.
     for(i = 0; i < dims; i++){
@@ -478,7 +478,7 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
         return 1;
     
     ptr = metafile_line;
-    ptr = __meta_fast_strcat(ptr, META_KEYWORD_DECLARATOR);
+    ptr = __meta_fast_strcat(ptr, META_KEYWORD_WRITE_DECLARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, keyword);
     for(; ptr < (ptr + META_KCL); ptr += strlen(META_KEYWORD_SEPARATOR))

@@ -46,12 +46,12 @@
 #define META_STDSPC 39                  //Keyword standard space (parameter max length)
 #define META_UCL 8                      //Unit max length
 //string symbols
-#define META_LOCK_SUFFIX ".lock"
 #define META_SUFFIX_DECLARATOR "."
 #define META_BASENAME_SEPARATOR "_"
 #define META_KEYWORD_SEPARATOR " "
-#define META_SECTION_DECLARATOR "**"
-#define META_KEYWORD_DECLARATOR "*"
+#define META_SECTION_DECLARATOR "p"
+#define META_KEYWORD_WRITE_DECLARATOR "w"
+#define META_KEYWORD_READ_DECLARATOR "r"
 //static array lengths
 #define META_MAX_FILE_LINES 1024
 #define META_MAX_NUMBER_OF_KEYWORD_ITERATIONS 16
