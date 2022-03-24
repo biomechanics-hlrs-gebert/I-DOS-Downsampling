@@ -90,10 +90,10 @@ typedef struct {
 /**
 * \brief static global variables (only meta library internals)
 */
-/*global*/ char * global_meta_program_keyword;
-/*global*/ char * global_meta_prgrm_mstr_app;
-/*global*/ basename in;
-/*global*/ basename out;
+extern char * global_meta_program_keyword;
+extern char * global_meta_prgrm_mstr_app;
+extern basename in;
+extern basename out;
 static FILE * fh_meta_in;
 static FILE * fh_meta_out;
 static FILE * fh_mon;
