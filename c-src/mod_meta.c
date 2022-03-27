@@ -427,6 +427,7 @@ int meta_extract_keyword_data(char *keyword, int dims, metafile *m_in, char res_
         }
         else
             continue; //skip the uninterpretable line
+    }
     
     if(!keyword_found) 
         return 1; //the whole file does not contain the required keyword.
