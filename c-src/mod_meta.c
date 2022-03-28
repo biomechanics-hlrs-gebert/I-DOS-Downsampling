@@ -1191,21 +1191,25 @@ int meta_parse_basename(char *filename, char *suf){
     if(!error)
         strcpy(/*global*/ in.features, filename_part);
     
-    if(error)
-        counter = err_number;
-    else if(filename_part != NULL){
-        counter = 5;
-        while(filename_part != NULL){
-            counter++;
-            filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
+    filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
+    
+    if(filename_part != NULL || error){
+        if(error)
+            counter = err_number;
+        else if(filename_part != NULL){
+            counter = 5;
+            while(filename_part != NULL){
+                counter++;
+                filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
+            }
         }
+        snprintf(
+            errortext, errortext_length, 
+            "Basename with %zu segments given, which is invalid: %s", 
+            counter, /*global*/ in.path_and_basename
+        );
+        return __meta_print_error(stdout, errortext, 1);
     }
-    snprintf(
-        errortext, errortext_length, 
-        "Basename with %zu segments given, which is invalid: %s", 
-        counter, /*global*/ in.path_and_basename
-    );
-    return __meta_print_error(stdout, errortext, 1);
         
     
     strcpy(/*global*/ out.full_name, /*global*/ in.full_name);
