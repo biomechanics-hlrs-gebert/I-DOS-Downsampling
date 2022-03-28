@@ -650,7 +650,7 @@ int meta_invoke(metafile *metafile){
 
     size_t buffer_size;
     char meta_suffix[META_MCL];
-    char filename_buffer[strlen(meta_suffix) + strlen(META_SUFFIX_DECLARATOR) + 1], **line_buffer;
+    char filename_buffer[strlen(meta_suffix) + strlen(META_SUFFIX_DECLARATOR) + 1], *line_buffer;
     
     if(__meta_get_file_suffix(/*global*/ in.full_name, meta_suffix))
         return 1;
@@ -668,20 +668,20 @@ int meta_invoke(metafile *metafile){
         return 1;
 
     for(int i = 0; i < lines; i++){
-        if(getline(line_buffer, &buffer_size, /*global*/ fh_meta_in) == -1){
-            free(*line_buffer);
-            return 1; //internal getline error
+        if(getline(&line_buffer, &buffer_size, /*global*/ fh_meta_in) == -1){
+            free(line_buffer);
+            return 1; 
         }
         if(buffer_size >= META_MCL){
-            free(*line_buffer);
-            return 1; //line too long
+            free(line_buffer);
+            return 1;
         }
-        if(__meta_set_metafile_string(metafile, i, *line_buffer)){
-            free(*line_buffer);
-            return 1; //setting of string doesn't work
+        if(__meta_set_metafile_string(metafile, i, line_buffer)){
+            free(line_buffer);
+            return 1;
         }
     }
-    free(*line_buffer);
+    free(line_buffer);
     return 0;
 }
 
