@@ -1124,7 +1124,7 @@ int meta_parse_basename(char *filename, char *suf){
     __meta_zero_basename_struct((void *) /*global*/ &in);
     strcpy(/*global*/ in.full_name, full_name_buffer);
     
-    filename_part = strtok(filename, "/");
+    filename_part = strtok(full_name_buffer, "/");
     if(filename_part == NULL) 
         return 1;
     
