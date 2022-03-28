@@ -8,6 +8,32 @@
 #include "mod_meta.h"
 #include "include_c/revision_meta.h"
 
+//global variable definitions (declared in header)
+/*global*/ basename in = {
+    .full_name = NULL,
+    .path = NULL,
+    .path_and_basename = NULL,
+    .basename = NULL,
+    .dataset = NULL,
+    .type = NULL,
+    .purpose = NULL,
+    .app = NULL,
+    .features = NULL
+}
+/*global*/ basename out = {
+    .full_name = NULL,
+    .path = NULL,
+    .path_and_basename = NULL,
+    .basename = NULL,
+    .dataset = NULL,
+    .type = NULL,
+    .purpose = NULL,
+    .app = NULL,
+    .features = NULL
+}
+/*global*/ char * global_meta_program_keyword = NULL;
+/*global*/ char * global_meta_prgrm_mstr_app = NULL;
+
 // ---- DECLARATIONS ----
 static ssize_t __meta_get_filesize(char *);
 static char *__meta_get_file_suffix(char *);
