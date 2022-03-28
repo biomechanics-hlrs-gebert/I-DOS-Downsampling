@@ -36,11 +36,11 @@
 
 // ---- DECLARATIONS ----
 static ssize_t __meta_get_filesize(char *);
-static char *__meta_get_file_suffix(char *);
 static char *__meta_get_metafile_string_reference(metafile *, unsigned int);
 static char *__meta_fast_strcat(char *, char *);
 static void __meta_zero_basename_struct(basename *);
 static void __meta_zero_array(size_t array_size, void *array);
+static int __meta_get_file_suffix(char *filename_with_suffix, char *buffer);
 static int __meta_fill_basename_struct(basename *);
 static int __meta_replace_char(char *, char, char);
 static int __meta_get_metafile_string_copy(metafile *, unsigned int, char *);
@@ -589,6 +589,7 @@ int meta_create_new(char *filename_with_suffix){
     size_t meta_suffix_length = strlen(META_SUFFIX);
     size_t meta_out_length = strlen(/*global*/ out.full_name);
     char buffer[filename_length + meta_suffix_length + 1], *ptr;
+    char extension_buffer[filename_length];
     char errormessage[
         filename_length >= meta_out_length + meta_suffix_length ?
         filename_length + 26 :
@@ -601,8 +602,10 @@ int meta_create_new(char *filename_with_suffix){
         __meta_fast_strcat(ptr, " does not exist.");
         return __meta_print_error(stdout, errormessage, 1);
     }
-
-    if(meta_parse_basename(filename_with_suffix, __meta_get_file_suffix(filename_with_suffix))) 
+    
+    if(__meta_get_file_suffix(filename_with_suffix, extension_buffer))
+        return 1;
+    if(meta_parse_basename(filename_with_suffix, extension_buffer)) 
         return 1;
 
     ptr = __meta_fast_strcat(buffer, /*global*/ in.path_and_basename);
@@ -646,9 +649,11 @@ int meta_invoke(metafile *metafile){
         return 1;
 
     size_t buffer_size;
-    char *meta_suffix = __meta_get_file_suffix(/*global*/ in.full_name);
+    char meta_suffix[META_MCL];
     char filename_buffer[strlen(meta_suffix) + strlen(META_SUFFIX_DECLARATOR) + 1], **line_buffer;
     
+    if(__meta_get_file_suffix(/*global*/ in.full_name, meta_suffix))
+        return 1;
     strcpy(filename_buffer, META_SUFFIX_DECLARATOR);
     strcat(filename_buffer, meta_suffix);
     if(strcmp(filename_buffer, META_SUFFIX) != 0)
@@ -1358,7 +1363,7 @@ int meta_delete_empty_file(char *filename){
     ptr = __meta_fast_strcat(command, "rm -r ");
     ptr = __meta_fast_strcat(ptr, filename);
     if(ptr == NULL)
-        return 1;
+        return -1;
 
     if(system(command)) 
         return -1;
@@ -1549,7 +1554,8 @@ static ssize_t __meta_get_filesize(char *filename){
 * \private
 *
 * \param[in] filename The filename to be parsed.
-* \return NULL on error, on success pointer to a copy of the file extension.
+* \param[out] buffer The buffer to store the filename extension without META_SUFFIX_DECLARATOR.
+* \return 1 on error, on success 0.
 */
 /*
 * UNIFY HEAD:             |  private function / c internal
@@ -1561,20 +1567,26 @@ static ssize_t __meta_get_filesize(char *filename){
 * ADD  INPUT SANITIZER:   |  done
 * MAKE PRETTY:            |  done
 */
-static char *__meta_get_file_suffix(char *filename_with_suffix){
+static int __meta_get_file_suffix(char *filename_with_suffix, char *buffer){
     if(filename_with_suffix == NULL) 
-        return NULL;
+        return 1;
+    if(buffer == NULL)
+        return 1;
 
     size_t filename_length = strlen(filename_with_suffix);
-    char *old_token, *token;
-    token = strtok(filename_with_suffix, META_SUFFIX_DECLARATOR);
+    char *old_token, *token, internal_buffer[filename_length + 1];
+
+    strcpy(internal_buffer, filename_with_suffix);
+    
+    token = strtok(internal_buffer, META_SUFFIX_DECLARATOR);
     if(token == NULL) 
-        return NULL;
+        return 1;
     while(token != NULL){
         old_token = token;
         token = strtok(NULL, META_SUFFIX_DECLARATOR);
     }
-    return old_token;
+    strcpy(buffer, old_token);
+    return 0;
 }
 
 /**
@@ -1694,3 +1706,4 @@ static int __meta_print_error(FILE *fh, char *message, int error){
     fprintf(fh, "%s with errorcode %d\n", errormessage, error);
     return error;
 }
+
