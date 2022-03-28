@@ -10,27 +10,27 @@
 
 //global variable definitions (declared in header)
 /*global*/ basename in = {
-    .full_name = NULL,
-    .path = NULL,
-    .path_and_basename = NULL,
-    .basename = NULL,
-    .dataset = NULL,
-    .type = NULL,
-    .purpose = NULL,
-    .app = NULL,
-    .features = NULL
-}
+    .full_name[0] = '\0',
+    .path[0] = '\0',
+    .path_and_basename[0] = '\0',
+    .basename[0] = '\0',
+    .dataset[0] = '\0',
+    .type[0] = '\0',
+    .purpose[0] = '\0',
+    .app[0] = '\0',
+    .features[0] = '\0'
+};
 /*global*/ basename out = {
-    .full_name = NULL,
-    .path = NULL,
-    .path_and_basename = NULL,
-    .basename = NULL,
-    .dataset = NULL,
-    .type = NULL,
-    .purpose = NULL,
-    .app = NULL,
-    .features = NULL
-}
+    .full_name[0] = '\0',
+    .path[0] = '\0',
+    .path_and_basename[0] = '\0',
+    .basename[0] = '\0',
+    .dataset[0] = '\0',
+    .type[0] = '\0',
+    .purpose[0] = '\0',
+    .app[0] = '\0',
+    .features[0] = '\0'
+};
 /*global*/ char * global_meta_program_keyword = NULL;
 /*global*/ char * global_meta_prgrm_mstr_app = NULL;
 
