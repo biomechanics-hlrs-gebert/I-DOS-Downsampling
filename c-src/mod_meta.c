@@ -1109,13 +1109,13 @@ int meta_parse_basename(char *filename, char *suf){
 
     size_t number_of_lines, counter = 0, errortext_length = strlen(/*global*/ in.full_name) + 72;
     char *filename_part, *basename_end, buffer[META_MCL], *ptr;
-    char errortext[errortext_length];
+    char errortext[errortext_length], full_name_buffer[META_MCL];
 
     if(strnlen(filename, META_MCL) == META_MCL) 
         return 1;
-
+    strcpy(full_name_buffer, filename);
     __meta_zero_basename_struct((void *) /*global*/ &in);
-    strcpy(/*global*/ in.full_name, filename);
+    strcpy(/*global*/ in.full_name, full_name_buffer);
     
     filename_part = strtok(filename, "/");
     if(filename_part == NULL) 
