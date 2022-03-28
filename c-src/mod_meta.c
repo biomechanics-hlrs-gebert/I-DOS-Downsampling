@@ -1153,35 +1153,39 @@ int meta_parse_basename(char *filename, char *suf){
     strcpy(buffer, /*global*/ in.basename);
     filename_part = strtok(buffer, META_BASENAME_SEPARATOR);
     if(filename_part == NULL){
-        error ? err_number = err_number : err_number = 0;
+        err_number = 0;
         error = true;
     }
     if(!error)
         strcpy(/*global*/ in.dataset, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
     if(filename_part == NULL){
-        error ? err_number = err_number : err_number = 1;
+        if(!error)
+            err_number = 1;
         error = true;
     }
     if(!error)
         strcpy(/*global*/ in.type, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
     if(filename_part == NULL){
-        error ? err_number = err_number : err_number = 2;
+        if(!error)
+            err_number = 2;
         error = true;
     }
     if(!error)
         strcpy(/*global*/ in.purpose, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
     if(filename_part == NULL){
-        error ? err_number = err_number : err_number = 3;
+        if(!error)
+            err_number = 3;
         error = true;
     }
     if(!error)
         strcpy(/*global*/ in.app, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
     if(filename_part == NULL){
-        error ? err_number = err_number : err_number = 4;
+        if(!error)
+            err_number = 4;
         error = true;
     }
     if(!error)
@@ -1193,7 +1197,7 @@ int meta_parse_basename(char *filename, char *suf){
         counter = 5;
         while(filename_part != NULL){
             counter++;
-            filename_part = strtok(NULL);
+            filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
         }
     }
     snprintf(
