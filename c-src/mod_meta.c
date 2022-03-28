@@ -1115,6 +1115,8 @@ int meta_parse_basename(char *filename, char *suf){
     size_t number_of_lines, counter = 0, errortext_length = strlen(/*global*/ in.full_name) + 72;
     char *filename_part, *basename_end, buffer[META_MCL], *ptr;
     char errortext[errortext_length], full_name_buffer[META_MCL];
+    bool error = false;
+    int err_number;
 
     if(strnlen(filename, META_MCL) == META_MCL) 
         return 1;
@@ -1126,28 +1128,20 @@ int meta_parse_basename(char *filename, char *suf){
     if(filename_part == NULL) 
         return 1;
     
+    ptr = /*global*/ in.path;
     while(filename_part != NULL){
         if(strstr(filename_part, suf) != NULL)
             break;
         else{
-            ptr = __meta_fast_strcat(/*global*/ in.path, "/");
+            ptr = __meta_fast_strcat(ptr, "/");
             ptr = __meta_fast_strcat(ptr, filename_part);
             if(ptr == NULL)
                 return 1;
             filename_part = strtok(NULL, "/");
         }
-        counter++;
     }
     if(filename_part == NULL) 
         return 1;
-    if(counter != 5){
-        snprintf(
-            errortext, errortext_length, 
-            "Basename with %zu segments given, which is invalid: %s", 
-            counter, /*global*/ in.path_and_basename
-        );
-        return __meta_print_error(stdout, errortext, 1);
-    }
 
     strcpy(/*global*/ in.basename, filename_part);
     basename_end = strstr(/*global*/ in.basename, suf);
@@ -1158,25 +1152,57 @@ int meta_parse_basename(char *filename, char *suf){
     
     strcpy(buffer, /*global*/ in.basename);
     filename_part = strtok(buffer, META_BASENAME_SEPARATOR);
-    if(filename_part == NULL) 
-        return 1;
-    strcpy(/*global*/ in.dataset, filename_part);
+    if(filename_part == NULL){
+        error ? err_number = err_number : err_number = 0;
+        error = true;
+    }
+    if(!error)
+        strcpy(/*global*/ in.dataset, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
-    if(filename_part == NULL) 
-        return 1;
-    strcpy(/*global*/ in.type, filename_part);
+    if(filename_part == NULL){
+        error ? err_number = err_number : err_number = 1;
+        error = true;
+    }
+    if(!error)
+        strcpy(/*global*/ in.type, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
-    if(filename_part == NULL) 
-        return 1;
-    strcpy(/*global*/ in.purpose, filename_part);
+    if(filename_part == NULL){
+        error ? err_number = err_number : err_number = 2;
+        error = true;
+    }
+    if(!error)
+        strcpy(/*global*/ in.purpose, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
-    if(filename_part == NULL) 
-        return 1;
-    strcpy(/*global*/ in.app, filename_part);
+    if(filename_part == NULL){
+        error ? err_number = err_number : err_number = 3;
+        error = true;
+    }
+    if(!error)
+        strcpy(/*global*/ in.app, filename_part);
     filename_part = strtok(NULL, META_BASENAME_SEPARATOR);
-    if(filename_part == NULL) 
-        return 1;
-    strcpy(/*global*/ in.features, filename_part);
+    if(filename_part == NULL){
+        error ? err_number = err_number : err_number = 4;
+        error = true;
+    }
+    if(!error)
+        strcpy(/*global*/ in.features, filename_part);
+    
+    if(error)
+        counter = err_number;
+    else if(filename_part != NULL){
+        counter = 5;
+        while(filename_part != NULL){
+            counter++;
+            filename_part = strtok(NULL);
+        }
+    }
+    snprintf(
+        errortext, errortext_length, 
+        "Basename with %zu segments given, which is invalid: %s", 
+        counter, /*global*/ in.path_and_basename
+    );
+    return __meta_print_error(stdout, errortext, 1);
+        
     
     strcpy(/*global*/ out.full_name, /*global*/ in.full_name);
     strcpy(/*global*/ out.path, /*global*/ in.path);
