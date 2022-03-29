@@ -535,6 +535,7 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
 * \brief Method to open a meta file to append data / keywords.
 * 
 * \param[out] metafile A pointer to a metafile structure.
+* \param[in] size_mpi The number of processors invloved in the computation.
 * \return 0 on success, 1 on error.
 */
 /*
@@ -547,13 +548,13 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
 * ADD  INPUT SANITIZER:   |  done
 * MAKE PRETTY:            |  done
 */
-int meta_append(metafile *metafile){
+int meta_append(metafile *metafile, int size_mpi){
     if(metafile == NULL)
         return 1;
 
     if(meta_invoke(metafile)) 
         return 1;
-    if(meta_continue(metafile)) 
+    if(meta_continue(metafile, size_mpi)) 
         return 1;
     if(meta_write_string("META_PARSED/INVOKED", "Now - Date/Time on the right."))
         return 1;
@@ -692,6 +693,7 @@ int meta_invoke(metafile *metafile){
 * \brief Method to invoke the meta output file.
 *
 * \param[inout] metafile Pointer to a metafile structure.
+* \param[in] size_mpi The number of processors involved in the computation.
 * \return 0 on success, 1 otherwise.
 */
 /*
@@ -704,8 +706,10 @@ int meta_invoke(metafile *metafile){
 * ADD  INPUT SANITIZER:   |  done
 * MAKE PRETTY:            |  done
 */
-int meta_continue(metafile *metafile){
+int meta_continue(metafile *metafile, int size_mpi){
     if(metafile == NULL) 
+        return 1;
+    if(size_mpi < 1)
         return 1;
 
     int error;
@@ -756,7 +760,6 @@ int meta_continue(metafile *metafile){
         return 1;
 
     char command[strlen(/*global*/ in.full_name) + strlen(/*global*/ out.full_name) + 5];
-    ssize_t beginning_offset;
     strcpy(command, "cp ");
     strcat(command, /*global*/ in.full_name);
     strcat(command, " ");
@@ -764,13 +767,15 @@ int meta_continue(metafile *metafile){
     if(error = system(command))
         return __meta_print_error(stdout, "The update of the meta filename went wrong.", error);
     
+    if(/*global*/ fh_meta_out != NULL) 
+        return 1;
+    /*global*/ fh_meta_out = fopen(out.full_name, "a");
     if(/*global*/ fh_meta_out == NULL) 
-        return 1; 
-    beginning_offset = ftell(/*global*/ fh_meta_out);
-    if(beginning_offset < 0) 
         return 1;
-    if(fseek(/*global*/ fh_meta_out, 0, SEEK_END)) 
+
+    if(meta_write_int_0D("PROCESSORS", NULL, size_mpi))
         return 1;
+
     return 0;
 }
 
@@ -1017,12 +1022,11 @@ int meta_signing(char *binary){
 *
 * \brief Method to close a meta file.
 *
-* \param[in] size_mpi The number of processors used in computation. For serial, use 1.
 * \return 0 on success, 1 otherwise.
 */
 /*
 * UNIFY HEAD:             |  done
-* UNIFY DOC:              |  fortran error(wrong,missing=param::size_mpi)
+* UNIFY DOC:              |  c error(missing=description)
 * FUNCTIONAL (THEORY):    |  done
 * FUNCTIONAL (PRACTICE):  | 
 * UNIT TESTING:           | 
@@ -1030,15 +1034,10 @@ int meta_signing(char *binary){
 * ADD  INPUT SANITIZER:   |  done
 * MAKE PRETTY:            |  done
 */
-int meta_close(int size_mpi){
-    if(size_mpi < 1)
-        return 1;
+int meta_close(){
 
-    if(meta_write_int_0D("PROCESSORS", NULL, size_mpi))
-        return 1;
-    
     /*global*/ meta_end = clock();
-    double differential_time = (meta_end - meta_start) / CLOCKS_PER_SEC;
+    double differential_time = (/*global*/ meta_end - /*global*/ meta_start) / CLOCKS_PER_SEC;
     char endstring[101];
 
     if(meta_write_int_0D("FINISHED_WALLTIME", NULL, differential_time))
@@ -1050,8 +1049,10 @@ int meta_close(int size_mpi){
 
     fprintf(/*global*/ fh_meta_out, endstring);
 
-    fclose(/*global*/ fh_meta_in);
-    fclose(/*global*/ fh_meta_out);
+    if(/*global*/ fh_meta_in != NULL)
+        fclose(/*global*/ fh_meta_in);
+    if(/*global*/ fh_meta_out != NULL)
+        fclose(/*global*/ fh_meta_out);
 
     return 0;
 }

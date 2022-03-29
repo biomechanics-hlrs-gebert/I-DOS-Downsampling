@@ -129,15 +129,15 @@ int meta_write_string(char *, char *);
 
 //public direct file interactions
 int meta_handle_lock_file(char *, char *);
-int meta_append(metafile *);
+int meta_append(metafile *, int);
 int meta_create_new(char *);
 int meta_invoke(metafile *);
-int meta_continue(metafile *);
+int meta_continue(metafile *, int);
 int meta_start_ascii(FILE **, char *);
 int meta_stop_ascii(FILE *, char *);
 int meta_existing_ascii(FILE **, char *, int *);
 int meta_signing(char *);
-int meta_close(int);
+int meta_close(void);
 
 //public helper function declarations
 size_t meta_get_filesize(basename *);
