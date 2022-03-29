@@ -682,6 +682,7 @@ int meta_invoke(metafile *metafile){
         }
     }
     free(line_buffer);
+    metafile -> number_of_lines = lines;
     return 0;
 }
 
