@@ -649,9 +649,9 @@ int meta_invoke(metafile *metafile){
     if(__meta_get_filesize(/*global*/ in.full_name) == -1)
         return 1;
 
-    size_t buffer_size;
+    size_t buffer_size = 0;
     char meta_suffix[META_MCL];
-    char filename_buffer[strlen(meta_suffix) + strlen(META_SUFFIX_DECLARATOR) + 1], *line_buffer;
+    char filename_buffer[strlen(meta_suffix) + strlen(META_SUFFIX_DECLARATOR) + 1], *line_buffer = NULL;
     
     if(__meta_get_file_suffix(/*global*/ in.full_name, meta_suffix))
         return 1;
