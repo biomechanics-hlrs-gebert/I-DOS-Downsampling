@@ -495,7 +495,7 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
     if(strnlen(stdspcfill, META_STDSPC) == META_STDSPC) 
         return 1;
 
-    char metafile_line[META_MCL], time_buffer[META_MCL], *ptr;
+    char metafile_line[META_MCL], time_buffer[META_MCL], *ptr, *max;
     time_t now_time;
     struct tm *time_struct;
 
@@ -508,15 +508,15 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_WRITE_DECLARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, keyword);
-    for(; ptr < (ptr + META_KCL); ptr += strlen(META_KEYWORD_SEPARATOR))
+    for(max = ptr + META_KCL; ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR))
         ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, stdspcfill);
-    for(; ptr < (ptr + META_STDSPC); ptr += strlen(META_KEYWORD_SEPARATOR))
+    for(max = ptr + META_STDSPC; ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR))
         ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, unit);
-    for(; ptr < (ptr + META_UCL); ptr += strlen(META_KEYWORD_SEPARATOR))
+    for(max = ptr + META_UCL; ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR))
         ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, time_buffer);
@@ -771,6 +771,9 @@ int meta_continue(metafile *metafile, int size_mpi){
         return 1;
     /*global*/ fh_meta_out = fopen(out.full_name, "a");
     if(/*global*/ fh_meta_out == NULL) 
+        return 1;
+
+    if(fseek(/*global*/ fh_meta_out, 0, SEEK_END))
         return 1;
 
     if(meta_write_int_0D("PROCESSORS", NULL, size_mpi))
