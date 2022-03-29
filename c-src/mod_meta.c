@@ -1041,7 +1041,7 @@ int meta_close(){
 
     /*global*/ meta_end = clock();
     double differential_time = (/*global*/ meta_end - /*global*/ meta_start) / CLOCKS_PER_SEC;
-    char endstring[101];
+    char endstring[102];
 
     if(meta_write_int_0D("FINISHED_WALLTIME", NULL, differential_time))
         return 1;
