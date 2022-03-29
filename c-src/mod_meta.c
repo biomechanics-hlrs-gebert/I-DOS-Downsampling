@@ -667,6 +667,9 @@ int meta_invoke(metafile *metafile){
     lines = meta_count_lines(/*global*/ fh_meta_in);
     if(lines == -1)
         return 1;
+    
+    //allocate large enough buffer to hold all lines
+    metafile -> content = (char *) calloc(lines * META_MCL, sizeof(char));
 
     for(int i = 0; i < lines; i++){
         if(getline(&line_buffer, &buffer_size, /*global*/ fh_meta_in) == -1){

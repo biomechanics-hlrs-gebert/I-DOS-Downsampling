@@ -83,7 +83,7 @@ typedef struct {
 */
 typedef struct {
     int number_of_lines;
-    char content[META_MAX_FILE_LINES * META_MCL];
+    char *content;
 } metafile;
 
 // ==== global variables ====
