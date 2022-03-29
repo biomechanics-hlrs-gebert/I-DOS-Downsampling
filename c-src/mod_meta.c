@@ -508,15 +508,15 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_WRITE_DECLARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, keyword);
-    for(max = ptr + META_KCL; ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR))
+    for(max = ptr + META_KCL - strlen(keyword); ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR) - 1)
         ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, stdspcfill);
-    for(max = ptr + META_STDSPC; ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR))
+    for(max = ptr + META_STDSPC - strlen(stdspcfill); ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR) - 1)
         ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, unit);
-    for(max = ptr + META_UCL; ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR))
+    for(max = ptr + META_UCL - strlen(unit); ptr < max; ptr += strlen(META_KEYWORD_SEPARATOR) -1)
         ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, META_KEYWORD_SEPARATOR);
     ptr = __meta_fast_strcat(ptr, time_buffer);
