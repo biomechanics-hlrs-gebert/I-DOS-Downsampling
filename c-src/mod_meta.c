@@ -1050,7 +1050,7 @@ int meta_close(){
         endstring[i] = '-';
     endstring[101] = '\0';
 
-    fprintf(/*global*/ fh_meta_out, endstring);
+    fprintf(/*global*/ fh_meta_out, "%s\n", endstring);
 
     if(/*global*/ fh_meta_in != NULL)
         fclose(/*global*/ fh_meta_in);
