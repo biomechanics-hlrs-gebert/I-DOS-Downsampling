@@ -390,9 +390,9 @@ int meta_handle_lock_file(char *restart, char *restart_cmdarg){
 */
 /* 
 * UNIFY HEAD:             |  c error(type=metafile)
-* UNIFY DOC:              |  fortran error(parameter_error=[chars, tokens, ntokens])
-* FUNCTIONAL (THEORY):    |  c error(type=functional_differ_with[fortran]["parsing behaviour adjustable", "no additional tokens", "variable / macro difference"])
-* FUNCTIONAL (PRACTICE):  |  
+* UNIFY DOC:              |  ?
+* FUNCTIONAL (THEORY):    |  done
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  
 * ADD  INPUT SANITIZER:   |  done
@@ -476,11 +476,11 @@ int meta_extract_keyword_data(char *keyword, int dims, metafile *m_in, char res_
 */
 /* 
 * UNIFY HEAD:             |  done
-* UNIFY DOC:              |  ? (unified, but maybe unclear)
+* UNIFY DOC:              |  ? 
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |   
+* FUNCTIONAL (PRACTICE):  |  done 
 * UNIT TESTING:           |   
-* ADD  ERROR HANDLER:     |   
+* ADD  ERROR HANDLER:     |  
 * ADD  INPUT SANITIZER:   |  done
 * MAKE PRETTY:            |  done
 */
@@ -542,7 +542,7 @@ int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
 * UNIFY HEAD:             |  c error(type=metafile)
 * UNIFY DOC:              |  fortran error(inout=meta_as_rry), c error(type=metafile)
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  
 * ADD  INPUT SANITIZER:   |  done
@@ -636,7 +636,7 @@ int meta_create_new(char *filename_with_suffix){
 * UNIFY HEAD:             |  c error(type=metafile)
 * UNIFY DOC:              |  c error(type=metafile)
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  done
 * ADD  INPUT SANITIZER:   |  done
@@ -703,7 +703,7 @@ int meta_invoke(metafile *metafile){
 * UNIFY HEAD:             |  c error(type=metafile)
 * UNIFY DOC:              |  c error(type=metafile)
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  done
 * ADD  INPUT SANITIZER:   |  done
@@ -991,7 +991,7 @@ int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
 /*
 * UNIFY HEAD:             |  done
 * UNIFY DOC:              |  fortran error(unclear)
-* FUNCTIONAL (THEORY):    |  done -> fortran error(hash is not a gloabl nor a local variable)
+* FUNCTIONAL (THEORY):    |  done
 * FUNCTIONAL (PRACTICE):  | 
 * UNIT TESTING:           | 
 * ADD  ERROR HANDLER:     |  unnessesary
@@ -1034,7 +1034,7 @@ int meta_signing(char *binary){
 * UNIFY HEAD:             |  done
 * UNIFY DOC:              |  c error(missing=description)
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  | 
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           | 
 * ADD  ERROR HANDLER:     |  unnessesary
 * ADD  INPUT SANITIZER:   |  done
@@ -1075,7 +1075,7 @@ int meta_close(){
 * UNIFY HEAD:             |  fortran error (name_fortran=count_lines)
 * UNIFY DOC:              |  done
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  | 
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           | 
 * ADD  ERROR HANDLER:     |  unnessesary
 * ADD  INPUT SANITIZER:   |  done
@@ -1110,7 +1110,7 @@ size_t meta_count_lines(FILE *fh){
 * UNIFY HEAD:             |  fortran error (name_fortran=parse_basename)
 * UNIFY DOC:              |  done
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  | 
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           | 
 * ADD  ERROR HANDLER:     |  done
 * ADD  INPUT SANITIZER:   |  done
@@ -1244,7 +1244,7 @@ int meta_parse_basename(char *filename, char *suf){
 * UNIFY HEAD:             |  fortran error (name_fortran=check_unit)
 * UNIFY DOC:              |  fortran error (unprecise,wrong)
 * FUNCTIONAL (THEORY):    |  done, fortran error(implementation_error=true["does not trunctate the keyword"])
-* FUNCTIONAL (PRACTICE):  | 
+* FUNCTIONAL (PRACTICE):  |  
 * UNIT TESTING:           | 
 * ADD  ERROR HANDLER:     |  done
 * ADD  INPUT SANITIZER:   |  done
@@ -1284,7 +1284,7 @@ int meta_check_unit(char *unit){
 * ADD  ERROR HANDLER:     |  done
 * ADD  INPUT SANITIZER:   |  done
 * MAKE PRETTY:            |  done
-*/ //TODO: replace __meta_fast_strcat with snprintf in all methods
+*/
 int meta_check_keyword(char *keyword){
     if(keyword == NULL) 
         return -1;
@@ -1603,7 +1603,7 @@ static ssize_t __meta_get_filesize(char *filename){
 * UNIFY HEAD:             |  private function / c internal
 * UNIFY DOC:              |  private function / c internal
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  unnessesary
 * ADD  INPUT SANITIZER:   |  done
@@ -1654,7 +1654,7 @@ static int __meta_get_file_suffix(char *filename_with_suffix, char *buffer){
 * UNIFY HEAD:             |  private function / c internal
 * UNIFY DOC:              |  private function / c internal
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  unnessesary
 * ADD  INPUT SANITIZER:   |  done
@@ -1690,7 +1690,7 @@ static char* __meta_fast_strcat(char *destination, char *source){
 * UNIFY HEAD:             |  private function / c internal
 * UNIFY DOC:              |  private function / c internal
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  unnessesary
 * ADD  INPUT SANITIZER:   |  done
@@ -1729,7 +1729,7 @@ static int __meta_replace_char(char *string, char to_be_replaced, char replaceme
 * UNIFY HEAD:             |  private function / c internal
 * UNIFY DOC:              |  private function / c internal
 * FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
+* FUNCTIONAL (PRACTICE):  |  done
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  unnessesary
 * ADD  INPUT SANITIZER:   |  done

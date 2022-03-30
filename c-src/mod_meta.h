@@ -8,7 +8,7 @@
 
 /*
 * TODO:
-*   make metafile dynamically allocable
+*   make metafile dynamically allocable DONE -> need destructor!!!
 *   remove use of metafile structure
 */
 
