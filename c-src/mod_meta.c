@@ -186,7 +186,7 @@ int meta_write_int_1D(char *keyword, char *unit, int dims, int value[dims]){
     size_t string_length = 0;
     buffer[0] = '\0';
     for(int i = 0; i < dims; i++){
-        if((string_length += snprintf(tmp, META_STDSPC, "%d", value[i])) >= META_STDSPC)
+        if((string_length += snprintf(tmp, META_STDSPC, "%d ", value[i])) >= META_STDSPC)
             return 1;
         strcat(buffer, tmp);
     }
@@ -229,7 +229,7 @@ int meta_write_long_1D(char *keyword, char *unit, int dims, long long value[dims
     size_t string_length = 0;
     buffer[0] = '\0';
     for(int i = 0; i < dims; i++){
-        if((string_length += snprintf(tmp, META_STDSPC, "%lld", value[i])) >= META_STDSPC)
+        if((string_length += snprintf(tmp, META_STDSPC, "%lld ", value[i])) >= META_STDSPC)
             return 1;
         strcat(buffer, tmp);
     }
@@ -271,7 +271,7 @@ int meta_write_double_1D(char *keyword, char *unit, int dims, double value[dims]
     size_t string_length = 0;
     buffer[0] = '\0';
     for(int i = 0; i < dims; i++){
-        if((string_length += snprintf(tmp, META_STDSPC, "%lf", value[i])) >= META_STDSPC)
+        if((string_length += snprintf(tmp, META_STDSPC, "%lf ", value[i])) >= META_STDSPC)
             return 1;
         strcat(buffer, tmp);
     }
