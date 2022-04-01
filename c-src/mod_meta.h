@@ -6,12 +6,6 @@
 * \brief Header for the meta file format
 */
 
-/*
-* TODO:
-*   make metafile dynamically allocable DONE -> need destructor!!!
-*   remove use of metafile structure
-*/
-
 // ==== include statements ====
 #include <stdio.h> 
 #include <stdlib.h>
@@ -52,9 +46,6 @@
 #define META_SECTION_DECLARATOR "p"
 #define META_KEYWORD_WRITE_DECLARATOR "w"
 #define META_KEYWORD_READ_DECLARATOR "r"
-//static array lengths
-#define META_MAX_FILE_LINES 1024
-#define META_MAX_NUMBER_OF_KEYWORD_ITERATIONS 16
 
 // error checking
 #if META_MCL < (META_KCL + META_STDSPC + META_UCL + META_TIME_MAX_LENGTH)
@@ -77,6 +68,7 @@ typedef struct {
     char app[META_MCL];
     char features[META_MCL];
 } basename;
+
 /**
 * \typedef metafile
 * \struct metafile mod_meta.h "c-src/mod_meta.h"
@@ -86,14 +78,20 @@ typedef struct {
     char *content;
 } metafile;
 
+
 // ==== global variables ====
+
 /**
-* \brief static global variables (only meta library internals)
+* \brief global variables (defined in mod_meta.c, manual user override in main() required)
 */
 extern char * global_meta_program_keyword;
 extern char * global_meta_prgrm_mstr_app;
 extern basename in;
 extern basename out;
+
+/**
+* \brief static global variables (only meta library internals)
+*/
 static FILE * fh_meta_in;
 static FILE * fh_meta_out;
 static FILE * fh_mon;
@@ -118,7 +116,7 @@ int meta_read_int_1D(char *, metafile *, int dims, int[dims]);
 int meta_read_double_0D(char *, metafile *, double *);
 int meta_read_double_1D(char *, metafile *, int dims, double[dims]);
 
-//public interactions (write) function declarations
+//public interaction (write) function declarations
 int meta_write_int_0D(char *, char *, int);
 int meta_write_int_1D(char *, char *, int dims, int[dims]);
 int meta_write_long_0D(char *, char *, long long);
