@@ -988,11 +988,12 @@ int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
     if(fh == NULL || suf == NULL || amount_of_lines == NULL) 
         return 1;
 
-    size_t filename_size = strlen(/*global*/ in.path_and_basename) + strlen(suf) + 1;
+    size_t filename_size = strlen(/*global*/ out.path) + strlen(suf) + 10;
     char filename[filename_size], errortext[filename_size + 42], *ptr;
     int amount_of_lines_temp;
     
-    ptr = __meta_fast_strcat(filename, /*global*/ in.path_and_basename);
+    ptr = __meta_fast_strcat(filename, /*global*/ out.path);
+    ptr = __meta_fast_strcat(ptr, "temporary");
     ptr = __meta_fast_strcat(ptr, suf);
 
     if(__meta_get_filesize(filename) == -1){
@@ -1000,7 +1001,8 @@ int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
         __meta_fast_strcat(ptr, filename);
         return __meta_print_error(stdout, errortext, 1);
     }
-    *fh = fopen(filename, "r+");
+    if(*fh == NULL)
+        *fh = fopen(filename, "r+");
     if(*fh == NULL) 
         return 1;
     amount_of_lines_temp = meta_count_lines(*fh);
