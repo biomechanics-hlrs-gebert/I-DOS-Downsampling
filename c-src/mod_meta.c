@@ -383,7 +383,7 @@ int meta_compare_restart(char *restart, char *restart_cmdarg){
         if(restart == NULL || restart_cmdarg == NULL)
             return 1;
         
-        char message[];
+        char *message;
 
         if(strcmp(restart_cmdarg, "") && strcmp(restart_cmdarg, "U")){
             if(!strcmp(restart_cmdarg, "N")){
@@ -849,7 +849,7 @@ int meta_start_ascii(FILE **fh, char *suf){
     size_t perm_size = strlen(/*global*/ out.path_and_basename) + strlen(suf) + 1;
     char temporary_filename[temp_size], permanent_filename[perm_size];
     char temp_command[temp_size + 6], perm_command[perm_size + 6];
-    char errortext[temp_size > perm_size ? temp_size + 18 : perm_size + 18];
+    char errortext[temp_size > perm_size ? temp_size + 20 : perm_size + 20];
     char *ptr;
     int error;
 
@@ -916,7 +916,7 @@ int meta_stop_ascii(FILE *fh, char *suf){
     size_t alt_size = strlen(/*global*/ in.path_and_basename) + strlen(suf) + 1;
     char temporary_filename[temp_size], permanent_filename[perm_size], alternative_filename[alt_size];
     char exist_command[temp_size + perm_size + 5], not_exist_command[alt_size + perm_size + 5];
-    char errortext[temp_size + 65], *ptr;
+    char errortext[temp_size + 67], *ptr;
     int error;
 
     ptr = __meta_fast_strcat(temporary_filename, /*global*/ out.path);
