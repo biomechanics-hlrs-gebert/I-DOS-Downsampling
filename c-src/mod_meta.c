@@ -349,14 +349,14 @@ int meta_handle_lock_file(char *restart, char *restart_cmdarg){
             __meta_fast_strcat(ptr, /*global*/ out.full_name);
             system(command);
         }
-        return __meta_print_error(stdout, "The .*.lock file is set and a restart is prohibited by default or the user.", 1);
+        return __meta_print_error(stdout, "The .*.lock file is set and a restart is prohibited by default or the user.\n", 1);
     }
 
     if(__meta_get_filesize(lockname) == -1 && (!strcmp(restart, "Y") || !strcmp(restart, "N"))){
         ptr = __meta_fast_strcat(command, "touch ");
         __meta_fast_strcat(ptr, lockname);
         if(error = system(command))
-            return __meta_print_error(stdout, "The .*.lock file could not be set.", error);
+            return __meta_print_error(stdout, "The .*.lock file could not be set.\n", error);
     }
 }
 
@@ -388,15 +388,15 @@ int meta_compare_restart(char *restart, char *restart_cmdarg){
         if(strcmp(restart_cmdarg, "") && strcmp(restart_cmdarg, "U")){
             if(!strcmp(restart_cmdarg, "N")){
                 strcpy(restart, restart_cmdarg);
-                message = "The keyword »restart« was overwritten by the command flag --no-restart";
+                message = "The keyword »restart« was overwritten by the command flag --no-restart\n";
             }
             else if(!strcmp(restart_cmdarg, "Y")){
-                message = "The keyword »restart« was overwritten by the command flag --restart";
+                message = "The keyword »restart« was overwritten by the command flag --restart\n";
                 strcpy(restart, restart_cmdarg);
             }
             else
                 message = "";
-                printf(message);
+                fprintf(stdout, message);
         }
         return 0;
 }
@@ -623,14 +623,14 @@ int meta_create_new(char *filename_with_suffix){
     char extension_buffer[filename_length];
     char errormessage[
         filename_length >= meta_out_length + meta_suffix_length ?
-        filename_length + 26 :
-        meta_out_length + meta_suffix_length
+        filename_length + 27 :
+        meta_out_length + meta_suffix_length + 27
     ];
 
     if(__meta_get_filesize(filename_with_suffix) == -1){
         ptr = __meta_fast_strcat(errormessage, "The file ");
         ptr = __meta_fast_strcat(ptr, filename_with_suffix);
-        __meta_fast_strcat(ptr, " does not exist.");
+        __meta_fast_strcat(ptr, " does not exist.\n");
         return __meta_print_error(stdout, errormessage, 1);
     }
     
@@ -644,7 +644,7 @@ int meta_create_new(char *filename_with_suffix){
     if(__meta_get_filesize(buffer) != -1){
         ptr = __meta_fast_strcat(errormessage, "The file ");
         ptr = __meta_fast_strcat(ptr, buffer);
-        __meta_fast_strcat(ptr, " already exists.");
+        __meta_fast_strcat(ptr, " already exists.\n");
         return __meta_print_error(stdout, errormessage, 1);
     }
 
@@ -798,7 +798,7 @@ int meta_continue(metafile *metafile, int size_mpi){
     strcat(command, " ");
     strcat(command, /*global*/ out.full_name);
     if(error = system(command))
-        return __meta_print_error(stdout, "The update of the meta filename went wrong.", error);
+        return __meta_print_error(stdout, "The update of the meta filename went wrong.\n", error);
     
     if(/*global*/ fh_meta_out != NULL) 
         return 1;
@@ -849,7 +849,7 @@ int meta_start_ascii(FILE **fh, char *suf){
     size_t perm_size = strlen(/*global*/ out.path_and_basename) + strlen(suf) + 1;
     char temporary_filename[temp_size], permanent_filename[perm_size];
     char temp_command[temp_size + 6], perm_command[perm_size + 6];
-    char errortext[temp_size > perm_size ? temp_size + 20 : perm_size + 20];
+    char errortext[temp_size > perm_size ? temp_size + 21 : perm_size + 21];
     char *ptr;
     int error;
 
@@ -866,7 +866,7 @@ int meta_start_ascii(FILE **fh, char *suf){
         if(error = system(temp_command)){
             ptr = __meta_fast_strcat(errortext, "»");
             ptr = __meta_fast_strcat(ptr, temporary_filename);
-            ptr = __meta_fast_strcat(ptr, "« not deletable.");
+            ptr = __meta_fast_strcat(ptr, "« not deletable.\n");
             return __meta_print_error(stdout, errortext, error);
         }
     }
@@ -877,7 +877,7 @@ int meta_start_ascii(FILE **fh, char *suf){
         if(error = system(perm_command)){
             ptr = __meta_fast_strcat(errortext, "»");
             ptr = __meta_fast_strcat(ptr, permanent_filename);
-            ptr = __meta_fast_strcat(ptr, "« not deletable.");
+            ptr = __meta_fast_strcat(ptr, "« not deletable.\n");
             return __meta_print_error(stdout, errortext, error);
         }
     }
@@ -916,7 +916,7 @@ int meta_stop_ascii(FILE *fh, char *suf){
     size_t alt_size = strlen(/*global*/ in.path_and_basename) + strlen(suf) + 1;
     char temporary_filename[temp_size], permanent_filename[perm_size], alternative_filename[alt_size];
     char exist_command[temp_size + perm_size + 5], not_exist_command[alt_size + perm_size + 5];
-    char errortext[temp_size + 67], *ptr;
+    char errortext[temp_size + 68], *ptr;
     int error;
 
     ptr = __meta_fast_strcat(temporary_filename, /*global*/ out.path);
@@ -940,7 +940,7 @@ int meta_stop_ascii(FILE *fh, char *suf){
         if(error = system(exist_command)){
             ptr = __meta_fast_strcat(errortext, "Can not rename the suffix_file from »");
             ptr = __meta_fast_strcat(ptr, temporary_filename);
-            __meta_fast_strcat(ptr, "« to the proper basename.");
+            __meta_fast_strcat(ptr, "« to the proper basename.\n");
             return __meta_print_error(stdout, errortext, error);
         }
     }
@@ -953,7 +953,7 @@ int meta_stop_ascii(FILE *fh, char *suf){
             if(error = system(not_exist_command)){
                 ptr = __meta_fast_strcat(errortext, "Can not copy the suffix_file from »");
                 ptr = __meta_fast_strcat(ptr, temporary_filename);
-                __meta_fast_strcat(ptr, "« to the proper basename.");
+                __meta_fast_strcat(ptr, "« to the proper basename.\n");
                 return __meta_print_error(stdout, errortext, error);
             }
         }
@@ -989,7 +989,7 @@ int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
         return 1;
 
     size_t filename_size = strlen(/*global*/ out.path) + strlen(suf) + 10;
-    char filename[filename_size], errortext[filename_size + 42], *ptr;
+    char filename[filename_size], errortext[filename_size + 43], *ptr;
     int amount_of_lines_temp;
     
     ptr = __meta_fast_strcat(filename, /*global*/ out.path);
@@ -998,10 +998,11 @@ int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
 
     if(__meta_get_filesize(filename) == -1){
         ptr = __meta_fast_strcat(errortext, "The input file requested does not exist: ");
-        __meta_fast_strcat(ptr, filename);
+        ptr = __meta_fast_strcat(ptr, filename);
+        ptr = __meta_fast_strcat(ptr, "\n");
         return __meta_print_error(stdout, errortext, 1);
     }
-    
+
     *fh = fopen(filename, "r+");
     if(*fh == NULL) 
         return 1;
