@@ -1001,8 +1001,8 @@ int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
         __meta_fast_strcat(ptr, filename);
         return __meta_print_error(stdout, errortext, 1);
     }
-    if(*fh == NULL)
-        *fh = fopen(filename, "r+");
+    
+    *fh = fopen(filename, "r+");
     if(*fh == NULL) 
         return 1;
     amount_of_lines_temp = meta_count_lines(*fh);
