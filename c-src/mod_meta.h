@@ -149,5 +149,6 @@ int meta_write_sha256sum(char *);
 int meta_delete_empty_file(char *);
 int meta_extract_keyword_data(char *, int dims, metafile *, char[dims][META_MCL]);
 int meta_write_keyword(char *, char *, char *);
+int meta_compare_restart(char *, char *);
 
 #endif

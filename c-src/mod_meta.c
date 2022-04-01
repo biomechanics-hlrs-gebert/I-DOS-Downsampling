@@ -305,7 +305,7 @@ int meta_write_string(char *keyword, char *value){
 *   The lock file might be used as an activity tracker for large
 *   computations.
 *
-* \param[inout] restart Wether to restart or not to.
+* \param[in] restart Wether to restart or not to.
 * \param[in] restart_cmdarg Nullable. Possible cmd argument override.
 * \return 0 on success, 1 otherwise.
 */
@@ -316,8 +316,8 @@ int meta_write_string(char *keyword, char *value){
 * FUNCTIONAL (PRACTICE):  |  
 * UNIT TESTING:           |  
 * ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  
-* MAKE PRETTY:            |  
+* ADD  INPUT SANITIZER:   |  done
+* MAKE PRETTY:            |  done
 */
 int meta_handle_lock_file(char *restart, char *restart_cmdarg){
     if(restart == NULL)
@@ -331,19 +331,8 @@ int meta_handle_lock_file(char *restart, char *restart_cmdarg){
     char *message;
     
     if(restart_cmdarg != NULL){
-        if(!strcmp(restart_cmdarg, "") || !strcmp(restart_cmdarg, "U")){
-            if(!strcmp(restart_cmdarg, "N")){
-                strcpy(restart, restart_cmdarg);
-                message = "The keyword »restart« was overwritten by the command flag --no-restart";
-            }
-            else if(!strcmp(restart_cmdarg, "Y")){
-                message = "The keyword »restart« was overwritten by the command flag --restart";
-                strcpy(restart, restart_cmdarg);
-            }
-            else
-                message = "";
-                printf(message);
-        }
+        if(meta_compare_restart(restart, restart_cmdarg))
+            return 1;
     }
 
     ptr = lockname;
@@ -369,6 +358,47 @@ int meta_handle_lock_file(char *restart, char *restart_cmdarg){
         if(error = system(command))
             return __meta_print_error(stdout, "The .*.lock file could not be set.", error);
     }
+}
+
+/**
+* \author Jonathan Schäfer, hpcjscha@hlrs.de, HLRS/NUM
+*
+* \brief Compare restart arguments.
+*
+* \param[inout] restart Wether to restart or not to.
+* \param[in] restart_cmdarg Nullable. Possible cmd argument override.
+* \return 0 on success, 1 otherwise.
+*/
+/*
+* UNIFY HEAD:             |  done
+* UNIFY DOC:              |  done
+* FUNCTIONAL (THEORY):    |  done
+* FUNCTIONAL (PRACTICE):  |  
+* UNIT TESTING:           |  
+* ADD  ERROR HANDLER:     |  done
+* ADD  INPUT SANITIZER:   |  done
+* MAKE PRETTY:            |  done
+*/
+int meta_compare_restart(char *restart, char *restart_cmdarg){
+        if(restart == NULL || restart_cmdarg == NULL)
+            return 1;
+        
+        char message[];
+
+        if(strcmp(restart_cmdarg, "") && strcmp(restart_cmdarg, "U")){
+            if(!strcmp(restart_cmdarg, "N")){
+                strcpy(restart, restart_cmdarg);
+                message = "The keyword »restart« was overwritten by the command flag --no-restart";
+            }
+            else if(!strcmp(restart_cmdarg, "Y")){
+                message = "The keyword »restart« was overwritten by the command flag --restart";
+                strcpy(restart, restart_cmdarg);
+            }
+            else
+                message = "";
+                printf(message);
+        }
+        return 0;
 }
 
 /**
