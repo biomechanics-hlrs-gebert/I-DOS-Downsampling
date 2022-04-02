@@ -1028,13 +1028,14 @@ size_t meta_count_lines(FILE *fh){
     if(fh == NULL) 
         return -1;
 
-    char ch, touched = 0;
-    size_t number_of_lines = 0, i = 0;
+    char ch;
+    bool touched = false;
+    size_t number_of_lines = 0, i;
     
-    while((i++ < META_MAX_FILE_LINES * META_MCL) && ((ch = fgetc(fh)) != EOF))
+    for(i = 0; (ch = fgetc(fh)) != EOF; i++)
         if(ch == '\n'){
             number_of_lines++;
-            touched = 1;
+            touched = true;
         }
     if(fseek(fh, 1 - i, SEEK_CUR)) 
         return -1;
@@ -1362,7 +1363,7 @@ int meta_delete_empty_file(char *filename){
 static int __meta_set_metafile_string(metafile *metafile, unsigned int line_number, char *string){
     if(metafile == NULL || string == NULL) 
         return 1;
-    if(line_number >= META_MAX_FILE_LINES) 
+    if(line_number >= metafile -> number_of_lines) 
         return 1;
     if(strnlen(string, META_MCL) == META_MCL) 
         return 1;
@@ -1385,7 +1386,7 @@ static int __meta_set_metafile_string(metafile *metafile, unsigned int line_numb
 static char *__meta_get_metafile_string_reference(metafile *metafile, unsigned int line_number){
     if(metafile == NULL) 
         return NULL;
-    if(line_number >= META_MAX_FILE_LINES) 
+    if(line_number >= metafile -> number_of_lines) 
         return NULL;
     return (metafile -> content) + line_number * META_MCL * sizeof(char);
 }
@@ -1405,7 +1406,7 @@ static char *__meta_get_metafile_string_reference(metafile *metafile, unsigned i
 static int __meta_get_metafile_string_copy(metafile *metafile, unsigned int line_number, char *copy){
     if(metafile == NULL || copy == NULL) 
         return 1;
-    if(line_number >= META_MAX_FILE_LINES) 
+    if(line_number >= metafile -> number_of_lines) 
         return 1;
     if(strnlen(metafile -> content + line_number * META_MCL, META_MCL) == META_MCL) 
         return 1;
