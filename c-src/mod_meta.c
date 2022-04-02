@@ -309,16 +309,6 @@ int meta_write_string(char *keyword, char *value){
 * \param[in] restart_cmdarg Nullable. Possible cmd argument override.
 * \return 0 on success, 1 otherwise.
 */
-/*
-* UNIFY HEAD:             |  done
-* UNIFY DOC:              |  c error(brief_to_description=true)
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 int meta_handle_lock_file(char *restart, char *restart_cmdarg){
     if(restart == NULL)
         return 1;
@@ -369,16 +359,6 @@ int meta_handle_lock_file(char *restart, char *restart_cmdarg){
 * \param[in] restart_cmdarg Nullable. Possible cmd argument override.
 * \return 0 on success, 1 otherwise.
 */
-/*
-* UNIFY HEAD:             |  done
-* UNIFY DOC:              |  done
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 int meta_compare_restart(char *restart, char *restart_cmdarg){
         if(restart == NULL || restart_cmdarg == NULL)
             return 1;
@@ -417,16 +397,6 @@ int meta_compare_restart(char *restart, char *restart_cmdarg){
 * \param[in] m_in Metafile structure to read keyword from.
 * \param[out] res_tokens Results stored in array of dimension META_MCL times dims.
 * \return 0 on success, 1 otherwise
-*/
-/* 
-* UNIFY HEAD:             |  c error(type=metafile)
-* UNIFY DOC:              |  ?
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 int meta_extract_keyword_data(char *keyword, int dims, metafile *m_in, char res_tokens[dims][META_MCL]){
     if(keyword == NULL || m_in == NULL || res_tokens == NULL) 
@@ -503,16 +473,6 @@ int meta_extract_keyword_data(char *keyword, int dims, metafile *m_in, char res_
 * \param[in] stdspcfill String with data.
 * \param[in] unit Unit of the value.
 * \return 0 on success, 1 otherwise.
-*/
-/* 
-* UNIFY HEAD:             |  done
-* UNIFY DOC:              |  ? 
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done 
-* UNIT TESTING:           |   
-* ADD  ERROR HANDLER:     |  
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 int meta_write_keyword(char *keyword, char *stdspcfill, char *unit){
     if(keyword == NULL || stdspcfill == NULL || unit == NULL) 
@@ -662,16 +622,6 @@ int meta_create_new(char *filename_with_suffix){
 * \param[inout] metafile Pointer to a metafile structure.
 * \return 0 on success, 1 otherwise.
 */
-/*
-* UNIFY HEAD:             |  c error(type=metafile)
-* UNIFY DOC:              |  c error(type=metafile)
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 int meta_invoke(metafile *metafile){
     long long lines;
     if(metafile == NULL) 
@@ -728,16 +678,6 @@ int meta_invoke(metafile *metafile){
 * \param[inout] metafile Pointer to a metafile structure.
 * \param[in] size_mpi The number of processors involved in the computation.
 * \return 0 on success, 1 otherwise.
-*/
-/*
-* UNIFY HEAD:             |  c error(type=metafile)
-* UNIFY DOC:              |  c error(type=metafile)
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 int meta_continue(metafile *metafile, int size_mpi){
     if(metafile == NULL) 
@@ -897,16 +837,6 @@ int meta_start_ascii(FILE **fh, char *suf){
 * \param[in] suf Suffix of the file.
 * \return 0 on success, 1 otherwise.
 */
-/*
-* UNIFY HEAD:             |  done
-* UNIFY DOC:              |  done
-* FUNCTIONAL (THEORY):    |  maybe?
-* FUNCTIONAL (PRACTICE):  | 
-* UNIT TESTING:           | 
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 int meta_stop_ascii(FILE *fh, char *suf){
     if(fh == NULL || suf == NULL) 
         return 1;
@@ -973,16 +903,6 @@ int meta_stop_ascii(FILE *fh, char *suf){
 * \param[in] suf Suffix of the file.
 * \param[out] amount_of_lines Integer pointer to store the number of lines in file.
 * \return 0 on success, 1 otherwise.
-*/
-/*
-* UNIFY HEAD:             |  done
-* UNIFY DOC:              |  fortran error(inout_error=fh)
-* FUNCTIONAL (THEORY):    |  file pointer confusion: open already opened file, without closing?
-* FUNCTIONAL (PRACTICE):  | 
-* UNIT TESTING:           | 
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 int meta_existing_ascii(FILE **fh, char *suf, int *amount_of_lines){
     if(fh == NULL || suf == NULL || amount_of_lines == NULL) 
@@ -1104,16 +1024,6 @@ int meta_close(){
 * \param[in] fh File handle to operate on.
 * \return -1 if the file contains no newlines, else the number of lines.
 */
-/*
-* UNIFY HEAD:             |  fortran error (name_fortran=count_lines)
-* UNIFY DOC:              |  done
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           | 
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 size_t meta_count_lines(FILE *fh){
     if(fh == NULL) 
         return -1;
@@ -1138,16 +1048,6 @@ size_t meta_count_lines(FILE *fh){
 *
 * \param[in] filename Full name of the file.
 * \param[in] suf Expected suffix.
-*/
-/*
-* UNIFY HEAD:             |  fortran error (name_fortran=parse_basename)
-* UNIFY DOC:              |  done
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           | 
-* ADD  ERROR HANDLER:     |  done
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 int meta_parse_basename(char *filename, char *suf){
     if(filename == NULL || suf == NULL)
@@ -1289,10 +1189,10 @@ int meta_check_unit(char *unit){
     if(strnlen(unit, META_UCL) < META_UCL) 
         return 0;
     
-    char errortext[strlen(unit) + 73], *ptr;
+    char errortext[strlen(unit) + 74], *ptr;
     ptr = __meta_fast_strcat(errortext, "The unit ");
     ptr = __meta_fast_strcat(ptr, unit);
-    ptr = __meta_fast_strcat(ptr, "is longer than\nthe convention allows and therefore truncated!");
+    ptr = __meta_fast_strcat(ptr, "is longer than\nthe convention allows and therefore truncated!\n");
 
     fprintf(stdout, errortext);
 
@@ -1324,10 +1224,10 @@ int meta_check_keyword(char *keyword){
     if(strnlen(keyword, META_KCL) < META_KCL) 
         return 0;
     
-    char errortext[strlen(keyword) + 76], *ptr;
+    char errortext[strlen(keyword) + 77], *ptr;
     ptr = __meta_fast_strcat(errortext, "The keyword ");
     ptr = __meta_fast_strcat(ptr, keyword);
-    ptr = __meta_fast_strcat(ptr, "is longer than\nthe convention allows and therefore truncated!");
+    ptr = __meta_fast_strcat(ptr, "is longer than\nthe convention allows and therefore truncated!\n");
 
     fprintf(stdout, errortext);
 
@@ -1459,16 +1359,6 @@ int meta_delete_empty_file(char *filename){
 * \param[in] string The replacement string for the requested line.
 * \return on success 0, 1 otherwise.
 */
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 static int __meta_set_metafile_string(metafile *metafile, unsigned int line_number, char *string){
     if(metafile == NULL || string == NULL) 
         return 1;
@@ -1492,16 +1382,6 @@ static int __meta_set_metafile_string(metafile *metafile, unsigned int line_numb
 * \param[in] line_number The line one wants to get a reference on.
 * \return Pointer to the requested line if possible, else or on error NULL.
 */
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 static char *__meta_get_metafile_string_reference(metafile *metafile, unsigned int line_number){
     if(metafile == NULL) 
         return NULL;
@@ -1521,16 +1401,6 @@ static char *__meta_get_metafile_string_reference(metafile *metafile, unsigned i
 * \param[in] line_number The line one wants to get a copy of.
 * \param[out] copy The buffer the metafile line should be copied to.
 * \return on success 0, else 1.
-*/
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           | 
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 static int __meta_get_metafile_string_copy(metafile *metafile, unsigned int line_number, char *copy){
     if(metafile == NULL || copy == NULL) 
@@ -1572,17 +1442,7 @@ static void __meta_zero_basename_struct(basename *basename){
 * \private
 *
 * \param[in] array_size The size of the array in bytes.
-* \param[in] array The array to zero.
-*/
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
+* \param[inout] array The array to zero.
 */
 static void __meta_zero_array(size_t array_size, void *array){
     if(array == NULL) 
@@ -1601,16 +1461,6 @@ static void __meta_zero_array(size_t array_size, void *array){
 *
 * \param[in] filename The filename to be checked.
 * \return -1 if file does not exist, filesize in bytes otherwise.
-*/
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 static ssize_t __meta_get_filesize(char *filename){
     if(filename == NULL) 
@@ -1631,16 +1481,6 @@ static ssize_t __meta_get_filesize(char *filename){
 * \param[in] filename The filename to be parsed.
 * \param[out] buffer The buffer to store the filename extension without META_SUFFIX_DECLARATOR.
 * \return 1 on error, on success 0.
-*/
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 static int __meta_get_file_suffix(char *filename_with_suffix, char *buffer){
     if(filename_with_suffix == NULL) 
@@ -1679,19 +1519,9 @@ static int __meta_get_file_suffix(char *filename_with_suffix, char *buffer){
 *
 * \private
 *
-* \param[in] source. The source buffer from where to concatenate.
 * \param[out] destination The destination buffer to concatenate to. Has to be large enough.
+* \param[in] source. The source buffer from where to concatenate.
 * \return NULL on error, on success pointer to the current end ('\0') of destination.
-*/
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 static char* __meta_fast_strcat(char *destination, char *source){
     if(destination == NULL || source == NULL) 
@@ -1718,16 +1548,6 @@ static char* __meta_fast_strcat(char *destination, char *source){
 * \param[inout] string The string to be altered.
 * \param[in] to_be_replaced Char to be replaced in string.
 * \param[in] replacement. Replacement char.
-*/
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
 */
 static int __meta_replace_char(char *string, char to_be_replaced, char replacement){
     if(string == NULL)
@@ -1758,16 +1578,6 @@ static int __meta_replace_char(char *string, char to_be_replaced, char replaceme
 * \param[in] error Integer error value.
 * \return The same integer given with "error".
 */
-/*
-* UNIFY HEAD:             |  private function / c internal
-* UNIFY DOC:              |  private function / c internal
-* FUNCTIONAL (THEORY):    |  done
-* FUNCTIONAL (PRACTICE):  |  done
-* UNIT TESTING:           |  
-* ADD  ERROR HANDLER:     |  unnessesary
-* ADD  INPUT SANITIZER:   |  done
-* MAKE PRETTY:            |  done
-*/
 static int __meta_print_error(FILE *fh, char *message, int error){
     if(fh == NULL)
         return 1;
@@ -1778,7 +1588,7 @@ static int __meta_print_error(FILE *fh, char *message, int error){
     else
         strcpy(errormessage, "Generic error occurred during metafile execution!");
     
-    fprintf(fh, "%s with errorcode %d\n", errormessage, error);
+    fprintf(fh, "%s WITH ERRORCODE %d\n", errormessage, error);
     return error;
 }
 
