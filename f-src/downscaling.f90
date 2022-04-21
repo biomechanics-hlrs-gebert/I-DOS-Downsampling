@@ -52,10 +52,10 @@ SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
 
             ll = 1_ik
             DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
-                out_array(ll, mm, nn) = SUM(in_array(&
+                out_array(ll, mm, nn) = INT(SUM(REAL(in_array(&
                     ii:ii+scale_factor(1)-1_ik, &
                     jj:jj+scale_factor(2)-1_ik, &
-                    kk:kk+scale_factor(3)-1_ik)) / scale_volume
+                    kk:kk+scale_factor(3)-1_ik), KIND=rk)) / scale_volume, KIND=INT16)
                 ll = ll + 1_ik
             END DO
 
@@ -200,7 +200,7 @@ IF (my_rank==0) THEN
     ! Check and open the input file; Modify the Meta-Filename / Basename
     ! Define the new application name first
     !------------------------------------------------------------------------------
-    global_meta_prgrm_mstr_app = 'dosc' 
+    global_meta_prgrm_mstr_app = 'dos' 
     global_meta_program_keyword = 'DOWNSCALING'
     CALL meta_append(m_rry)
 
@@ -357,12 +357,20 @@ SELECT CASE(type)
             new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik2)
 
         ALLOCATE(rry_out_ik2(new_lcl_rry_out_dims(1), new_lcl_rry_out_dims(2), new_lcl_rry_out_dims(3)))
+        IF(my_rank==0) THEN
+            WRITE(std_out, FMT_MSG_AxI0) "Min input: ", MINVAL(rry_ik2)
+            WRITE(std_out, FMT_MSG_AxI0) "Max input: ", MaxVAL(rry_ik2)
+        END IF
 
     CASE('ik4') 
         CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
             new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik4)
 
         ALLOCATE(rry_out_ik4(new_lcl_rry_out_dims(1), new_lcl_rry_out_dims(2), new_lcl_rry_out_dims(3)))
+        IF(my_rank==0) THEN
+            WRITE(std_out, FMT_MSG_AxI0) "Min input: ", MINVAL(rry_ik4)
+            WRITE(std_out, FMT_MSG_AxI0) "Max input: ", MaxVAL(rry_ik4)
+        END IF
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -382,11 +390,21 @@ IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Writing binary information to *.raw file
 
 SELECT CASE(type)
     CASE('ik2') 
+        IF(my_rank==0) THEN
+            WRITE(std_out, FMT_MSG_AxI0) "Min output: ", MINVAL(rry_out_ik2)
+            WRITE(std_out, FMT_MSG_AxI0) "Max output: ", MaxVAL(rry_out_ik2)
+        END IF 
+
         CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
             new_lcl_rry_out_dims, lcl_subarray_out_origin, rry_out_ik2)
         DEALLOCATE(rry_out_ik2)
 
     CASE('ik4') 
+        IF(my_rank==0) THEN
+            WRITE(std_out, FMT_MSG_AxI0) "Min output: ", MINVAL(rry_out_ik4)
+            WRITE(std_out, FMT_MSG_AxI0) "Max output: ", MaxVAL(rry_out_ik4)
+        END IF
+        
         CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
             new_lcl_rry_out_dims, lcl_subarray_out_origin, rry_out_ik4)
         DEALLOCATE(rry_out_ik4)
