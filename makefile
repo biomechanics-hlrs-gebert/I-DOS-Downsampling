@@ -10,6 +10,7 @@
 long_name="Centralized Sources"
 # -----------------------------------------------------------------------------
 # Check for environment
+# -----------------------------------------------------------------------------
 check-env:
 ifeq ($(SYS_ENV),)
 	@echo "-----------------------------------------------"
@@ -21,26 +22,32 @@ else
 	@echo "-----------------------------------------------"
 	$(MAKE) all
 endif
+#
 # ------------------------------------------------------------------------------
 # Build path
+# -----------------------------------------------------------------------------
 subtree_build_path = $(CURDIR)
 export subtree_build_path
 #
 # ------------------------------------------------------------------------------
 # Directories
+# -----------------------------------------------------------------------------
 mod_dir   = $(subtree_build_path)/mod/
 obj_dir   = $(subtree_build_path)/obj/
 c-src_dir = $(subtree_build_path)/c-src/
 f-src_dir = $(subtree_build_path)/f-src/
 ext_f-src = $(subtree_build_path)/f-src/ext-src_
 #
+# -----------------------------------------------------------------------------
 # Directory for documentation
+# -----------------------------------------------------------------------------
 doc_dir  = $(subtree_build_path)/doc/
 html_dir = $(subtree_build_path)/html/
 tex_dir  = $(subtree_build_path)/latex/
 #
 # ------------------------------------------------------------------------------
 # File extensions and suffixes
+# -----------------------------------------------------------------------------
 mod_ext = .mod
 obj_ext = .o
 sho_ext = .so
@@ -65,6 +72,7 @@ PE = gnu
 # The subtree structure requires two directories containing modules. 
 # In this case, the program root/mod directory addressed by the -J 
 # http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
+# -----------------------------------------------------------------------------
 ifeq ($(PE),gnu)
 	f90_std_IJ     = -J$(mod_dir) -I$(subtree_build_path)
 	f90_dev_flags  = 	-fdefault-integer-8 -fdefault-real-8 \
@@ -82,7 +90,7 @@ ifeq ($(PE),gnu)
 endif
 # ------------------------------------------------------------------------------
 # Generate objects
-#
+# -----------------------------------------------------------------------------
 f-objects = $(obj_dir)mod_global_std$(obj_ext)\
 			$(obj_dir)mod_strings$(obj_ext)\
 			$(obj_dir)mod_math$(obj_ext)\
@@ -90,14 +98,17 @@ f-objects = $(obj_dir)mod_global_std$(obj_ext)\
 			$(obj_dir)mod_user_interaction$(obj_ext)\
 			$(obj_dir)mod_meta$(obj_ext)\
 			$(obj_dir)mod_vtk_raw$(obj_ext)\
-			$(obj_dir)mod_formatted_plain$(obj_ext)
+			$(obj_dir)mod_formatted_plain$(obj_ext)\
+			$(obj_dir)mod_image_manipulation$(obj_ext)
 
 # ------------------------------------------------------------------------------
 # Begin Building
+# -----------------------------------------------------------------------------
 all: $(f-objects)
 
 # ------------------------------------------------------------------------------
 # Standards Module
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_global_std$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_global_std$(f90_ext) -o $@
@@ -105,6 +116,7 @@ $(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
 
 # ------------------------------------------------------------------------------
 # Mechanical Module
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_mechanical$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_mechanical$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_mechanical$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_mechanical$(f90_ext) -o $@
@@ -112,6 +124,7 @@ $(obj_dir)mod_mechanical$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mo
 
 # ------------------------------------------------------------------------------
 # External source to parse input
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strings$(f90_ext)
 	@echo "----- Compiling " $(ext_f-src)strings$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(ext_f-src)strings$(f90_ext) -o $@
@@ -119,6 +132,7 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 
 # ------------------------------------------------------------------------------
 # Math Module
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	\
 							$(mod_dir)strings$(mod_ext)\
 							$(f-src_dir)mod_math$(f90_ext)
@@ -128,6 +142,7 @@ $(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	\
 	
 # -----------------------------------------------------------------------------
 # Module for User Interaction
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
 									$(f-src_dir)mod_user_interaction$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_user_interaction$(f90_ext) " -----"
@@ -136,6 +151,7 @@ $(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_di
 
 # -----------------------------------------------------------------------------
 # Meta Module 
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)user_interaction$(mod_ext) \
 							$(f-src_dir)mod_meta$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
@@ -144,6 +160,7 @@ $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)user_interact
 
 # -----------------------------------------------------------------------------
 # Formatted Plain Module
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)math$(mod_ext)\
 										$(f-src_dir)mod_formatted_plain$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_formatted_plain$(f90_ext) " -----"
@@ -152,11 +169,21 @@ $(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir
 
 # ------------------------------------------------------------------------------
 # Module vtk structured points and raw data
+# -----------------------------------------------------------------------------
 $(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
 								$(mod_dir)user_interaction$(mod_ext) \
 								$(f-src_dir)mod_vtk_raw$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
+	@echo
+
+# ------------------------------------------------------------------------------
+# Module vtk structured points and raw data
+# -----------------------------------------------------------------------------
+$(obj_dir)mod_image_manipulation$(obj_ext):$(mod_dir)global_std$(mod_ext) \
+								$(f-src_dir)mod_image_manipulation$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_image_manipulation$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_image_manipulation$(f90_ext) -o $@
 	@echo
 
 help:
