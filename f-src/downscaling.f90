@@ -1,125 +1,9 @@
-!------------------------------------------------------------------------------
-! MODULE: auxiliaries_of_downscaling
-!------------------------------------------------------------------------------
-!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!
-! @Description:
-!> Module containing additional routines for the main program.
-!------------------------------------------------------------------------------
-MODULE auxiliaries_of_downscaling
-
-USE ISO_FORTRAN_ENV
-USE global_std
-USE mechanical
-USE user_interaction
-
-IMPLICIT NONE
-   INTERFACE downscale
-      MODULE PROCEDURE downscale_ik2
-      MODULE PROCEDURE downscale_ik4
-   END INTERFACE downscale
-
-CONTAINS
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: downscale_ik2
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
-!
-!> @brief
-!> Reduce the resolution of a given image by a given integer factor.
-!
-!> @param[in] in_array Input array
-!> @param[in] scale_factor Factor of high resolution voxels to get a mean ave.
-!> @param[out] out_array Output array
-!------------------------------------------------------------------------------  
-SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
-
-    INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(OUT) :: out_array
-    INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: in_array
-    INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: scale_factor
-
-    INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
-    REAL(KIND=rk) :: scale_volume
-
-    scale_volume = REAL(PRODUCT(scale_factor), KIND=rk)
-
-    nn = 1_ik
-    DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
-
-        mm = 1_ik
-        DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
-
-            ll = 1_ik
-            DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
-                out_array(ll, mm, nn) = INT(SUM(REAL(in_array(&
-                    ii:ii+scale_factor(1)-1_ik, &
-                    jj:jj+scale_factor(2)-1_ik, &
-                    kk:kk+scale_factor(3)-1_ik), KIND=rk)) / scale_volume, KIND=INT16)
-                ll = ll + 1_ik
-            END DO
-
-            mm = mm + 1_ik
-        END DO
-
-        nn = nn + 1_ik
-    END DO
-END SUBROUTINE downscale_ik2
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: downscale_ik4
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
-!
-!> @brief
-!> Reduce the resolution of a given image by a given integer factor.
-!
-!> @param[in] in_array Input array
-!> @param[in] scale_factor Factor of high resolution voxels to get a mean ave.
-!> @param[out] out_array Output array
-!------------------------------------------------------------------------------  
-SUBROUTINE downscale_ik4(in_array, scale_factor, out_array)
-
-    INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(OUT) :: out_array
-    INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: in_array
-    INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: scale_factor
-
-    INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
-    REAL(KIND=rk) :: scale_volume
-
-    scale_volume = REAL(PRODUCT(scale_factor), KIND=rk)
-
-    nn = 1_ik
-    DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
-
-        mm = 1_ik
-        DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
-
-            ll = 1_ik
-            DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
-                out_array(ll, mm, nn) = SUM(in_array(&
-                    ii:ii+scale_factor(1)-1_ik, &
-                    jj:jj+scale_factor(2)-1_ik, &
-                    kk:kk+scale_factor(3)-1_ik)) / scale_volume
-                ll = ll + 1_ik
-            END DO
-
-            mm = mm + 1_ik
-        END DO
-
-        nn = nn + 1_ik
-    END DO
-END SUBROUTINE downscale_ik4
-
-END MODULE auxiliaries_of_downscaling
-
-
 !--------------------------------------------------------------------
 !> Downscaling
 !
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !> Date:    15.01.2022
-!> LastMod: 15.01.2022
+!> LastMod: 07.05.2022
 !--------------------------------------------------------------------
 PROGRAM downscaling
 
@@ -129,12 +13,11 @@ USE user_interaction
 USE meta
 USE MPI
 USE raw_binary
-USE auxiliaries_of_downscaling
+USE image_manipulation
 
 IMPLICIT NONE
 
-! Parameter
-INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer!!
+INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer
 
 CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry
 CHARACTER(LEN=scl) :: type, binary, restart, restart_cmd_arg
@@ -157,7 +40,6 @@ REAL(KIND=rk), DIMENSION(3) :: new_spacing, offset, scale_factor
 
 LOGICAL :: stp
 
-! MPI variables
 INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 !------------------------------------------------------------------------------

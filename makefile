@@ -119,6 +119,7 @@ f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 			$(st_obj_dir)mod_meta$(obj_ext) \
 			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
 			$(st_obj_dir)mod_formatted_plain$(obj_ext) \
+			$(st_obj_dir)mod_image_manipulation$(obj_ext) \
 			$(obj_dir)downscaling$(obj_ext)
 
 # ------------------------------------------------------------------------------
