@@ -25,26 +25,26 @@ endif
 #
 # ------------------------------------------------------------------------------
 # Build path
-# -----------------------------------------------------------------------------
-subtree_build_path = $(CURDIR)
-export subtree_build_path
+build_path = $(CURDIR)
+export build_path
 #
 # ------------------------------------------------------------------------------
 # Directories
-# -----------------------------------------------------------------------------
-mod_dir   = $(subtree_build_path)/mod/
-obj_dir   = $(subtree_build_path)/obj/
-c-obj_dir   = $(subtree_build_path)/obj/c_objects/
-c-src_dir = $(subtree_build_path)/c-src/
-f-src_dir = $(subtree_build_path)/f-src/
-ext_f-src = $(subtree_build_path)/f-src/ext-src_
+st_mod_dir= $(build_path)/mod/
+mod_dir   = $(build_path)/mod/
+obj_dir   = $(build_path)/obj/
+c-obj_dir = $(build_path)/obj/c_objects/
+c-src_dir = $(build_path)/c-src/
+f-src_dir = $(build_path)/f-src/
+ext_f-src = $(build_path)/f-src/ext-src_
 #
 # -----------------------------------------------------------------------------
 # Directory for documentation
 # -----------------------------------------------------------------------------
-doc_dir  = $(subtree_build_path)/doc/
-html_dir = $(subtree_build_path)/html/
-tex_dir  = $(subtree_build_path)/latex/
+doc_dir  = $(build_path)/doc/
+html_dir = $(build_path)/html/
+tex_dir  = $(build_path)/latex/
+#
 # ------------------------------------------------------------------------------
 # File extensions and suffixes
 # -----------------------------------------------------------------------------
@@ -61,38 +61,19 @@ f90_compiler = "mpif90"
 export f90_compiler
 c_compiler = "gcc"
 export c_compiler
+#
 # ------------------------------------------------------------------------------
 # Programming Environment - gnu, LLVM
+# ------------------------------------------------------------------------------
 PE = gnu
 # ------------------------------------------------------------------------------
 # Compile mode - dev, prod - Defined in environment.sh
-# compile_MODE = dev
+compile_MODE = dev
+#
 # ------------------------------------------------------------------------------
-# Compile flags GNU Compiler
-# The subtree structure requires two directories containing modules.
-# In this case, the program root/mod directory addressed by the -J 
-# http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
-# -----------------------------------------------------------------------------
-ifeq ($(PE),gnu)
-	f90_std_IJ     = -J$(mod_dir) -I$(subtree_build_path)
-	f90_dev_flags  = 	-fdefault-integer-8 -fdefault-real-8 \
-						-finstrument-functions -ggdb -o -O3 \
-						-fbacktrace -fbounds-check \
-						-Wno-conversion -Wall
-	f90_prod_flags = 	-fdefault-integer-8 -fdefault-real-8 \
-						-finstrument-functions -O3 -fbounds-check
-	c_std_I        = -I$(subtree_build_path)
-	c_dev_flags    =        -g -O3
-	c_prod_flags   =        -O3
-        
-	ifeq ($(compile_MODE),prod)
-		c_flags_f90 = $(f90_std_IJ) $(f90_prod_flags)
-		c_flags_c   = $(c_std_I) $(c_prod_flags)
-	else
-		c_flags_f90 = $(f90_std_IJ) $(f90_dev_flags)
-		c_flags_c   = $(c_std_I) $(c_dev_flags)
-	endif
-endif
+# Inlcude build options
+include make.flags
+#
 # ------------------------------------------------------------------------------
 # Generate objects
 # -----------------------------------------------------------------------------
