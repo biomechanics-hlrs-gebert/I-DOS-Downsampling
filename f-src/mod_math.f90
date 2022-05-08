@@ -20,6 +20,7 @@ REAL(KIND=rk), PARAMETER :: pi         = 4.D0*DATAN(1.D0)       !acos(-1._rk)
 REAL(KIND=rk), PARAMETER :: pihalf     = 4.D0*DATAN(1.D0)/2._rk !acos(-1._rk)
 REAL(KIND=rk), PARAMETER :: inv180     = 1._rk/180._rk
 REAL(KIND=rk), PARAMETER :: pi_div_180 = acos(-1._rk)/180._rk   ! * deg = rad
+REAL(KIND=rk), PARAMETER :: div_180_pi = 180._rk/acos(-1._rk)   ! * rad = deg
 
 !-- Higher dimensional numbers
 TYPE quaternion
@@ -403,19 +404,19 @@ END SUBROUTINE zerothres_ThD
 !------------------------------------------------------------------------------  
 FUNCTION eul_2_un_quat (euler_radians)
 
-    REAL (KIND=rk) , DIMENSION(3) :: euler_radians
+    REAL (KIND=rk) , DIMENSION(3) :: euler_radians, radians
     TYPE(Quaternion) :: eul_2_un_quat
 
     REAL (KIND=rk) :: ca, cb, cg, sa, sb, sg
 
-    euler_radians = euler_radians * 0.5_rk ! angle/2 to get a quaternion!
+    radians = euler_radians * 0.5_rk ! angle/2 to get a quaternion!
 
-    ca = COS(euler_radians(1))
-    sa = SIN(euler_radians(1))
-    cb = COS(euler_radians(2))
-    sb = SIN(euler_radians(2))
-    cg = COS(euler_radians(3))
-    sg = SIN(euler_radians(3))
+    ca = COS(radians(1))
+    sa = SIN(radians(1))
+    cb = COS(radians(2))
+    sb = SIN(radians(2))
+    cg = COS(radians(3))
+    sg = SIN(radians(3))
 
     eul_2_un_quat%w = ca * cb * cg + sa * sb * sg
     eul_2_un_quat%x = sa * cb * cg - ca * sb * sg
@@ -669,5 +670,46 @@ FUNCTION crpr(a, b)
     crpr(3) = a(1) * b(2) - a(2) * b(1)
 
 END FUNCTION crpr
+
+
+!------------------------------------------------------------------------------
+! FUNCTION: dist_pnt_pln_by_pnts
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Calculates the distance of a point to a plane, given by three points.
+!> https://www.mathepower.com/ebenengleichungen.php :-)
+!
+!> @param[in] pp1 Point 1 of the plane
+!> @param[in] pp2 Point 2 of the plane
+!> @param[in] pp3 Point 3 of the plane
+!> @param[in] p Point
+!> @return[out] di Distance
+!------------------------------------------------------------------------------  
+FUNCTION dist_pnt_pln_by_pnts(pp1, pp2, pp3, p) Result(di)
+
+REAL(KIND=rk), dimension(3), Intent(IN) :: pp1, pp2, pp3, p
+REAL(KIND=rk), dimension(3) :: nn, unitv 
+REAL(KIND=rk):: di, magni
+
+!------------------------------------------------------------------------------
+! The normal to the plane
+!------------------------------------------------------------------------------
+nn = crpr(pp1-pp3, pp1-pp2)
+
+!------------------------------------------------------------------------------
+! Magnitude of the normal to the plane
+!------------------------------------------------------------------------------
+magni = SQRT(DOT_PRODUCT(nn, nn))
+
+!------------------------------------------------------------------------------
+! Unit vector
+!------------------------------------------------------------------------------
+unitv = nn / magni
+
+di = DOT_PRODUCT(unitv, [p(1)-pp1(1), p(2)-pp1(2), p(3)-pp1(3)])
+
+END FUNCTION dist_pnt_pln_by_pnts
 
 END MODULE math

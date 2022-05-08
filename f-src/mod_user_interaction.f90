@@ -18,11 +18,14 @@ IMPLICIT NONE
 !------------------------------------------------------------------------------
 ! Formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_SEP = "(80('-'))"
-CHARACTER(Len=*), PARAMETER :: TAB_WDTH = "4"
-CHARACTER(Len=*), PARAMETER :: FMT_INT = "I0"
-CHARACTER(Len=*), PARAMETER :: FMT_SCI = "E0.6"
-CHARACTER(Len=*), PARAMETER :: FMT_REAL = "F0.6"
+CHARACTER(Len=*), PARAMETER :: FMT_SHSEP = "(60('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_SEP   = "(80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_TAB   = "    "
+CHARACTER(Len=*), PARAMETER :: FMT_DSEP  = "(80('='))"
+CHARACTER(Len=*), PARAMETER :: TAB_WDTH  = "4"
+CHARACTER(Len=*), PARAMETER :: FMT_INT   = "I0"
+CHARACTER(Len=*), PARAMETER :: FMT_SCI   = "E0.6"
+CHARACTER(Len=*), PARAMETER :: FMT_REAL  = "F0.6"
 !
 CHARACTER(Len=*), PARAMETER :: TXT = "('-- ',"
 CHARACTER(Len=*), PARAMETER :: DBG = "('DD ',"
@@ -62,7 +65,8 @@ CHARACTER(LEN=*), PARAMETER :: xAL     = "*(A,1x,L1,1x))"
 CHARACTER(Len=*), PARAMETER :: FMT_ERR_STOP = "('EE PROGRAM STOPPED.')"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_ERR         = ERR//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_SEP     = FMT_SEP ! "('EE ',80('='))"
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_SEP     = FMT_SEP  ! "('EE ',80('='))"
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_DSEP    = FMT_DSEP ! "('EE ',80('='))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0xAI0 = ERR//AI0xAI0
 CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0AxI0 = ERR//AI0AxI0
@@ -87,7 +91,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAL     = ERR//xAL
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_STOP = "('-- Program finished.')"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_TXT         = TXT//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP     = FMT_SEP ! "('-- ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP     = FMT_SEP  ! "('-- ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_DSEP    = FMT_DSEP ! "('-- ',80('-'))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0xAI0 = TXT//AI0xAI0
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0AxI0 = TXT//AI0AxI0
@@ -112,7 +117,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAL     = TXT//xAL
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_STOP = "('MM Program finished.')"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_MSG         = MSG//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP     = FMT_SEP ! "('MM ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP     = FMT_SEP  ! "('MM ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_DSEP    = FMT_DSEP ! "('MM ',80('-'))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0xAI0 = MSG//AI0xAI0
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0AxI0 = MSG//AI0AxI0
@@ -137,7 +143,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAL     = MSG//xAL
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_STOP = "('WW Program halted.')"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_WRN         = WRN//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP     = FMT_SEP ! "('WW ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP     = FMT_SEP  ! "('WW ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_DSEP    = FMT_DSEP ! "('MM ',80('-'))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0xAI0 = WRN//AI0xAI0
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0AxI0 = WRN//AI0AxI0
@@ -160,7 +167,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAL     = WRN//xAL
 ! Debug formats
 !------------------------------------------------------------------------------
 CHARACTER(Len=*), PARAMETER :: FMT_DBG         = DBG//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_SEP     = FMT_SEP ! "('DD ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_SEP     = FMT_SEP  ! "('DD ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_DSEP    = FMT_DSEP ! "('DD ',80('-'))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0xAI0 = DBG//AI0xAI0
 CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0AxI0 = DBG//AI0AxI0
@@ -566,7 +574,7 @@ INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(LEN=*), INTENT(IN) :: instring
 CHARACTER(LEN=*), INTENT(IN) :: frmt
 
-CHARACTER(LEN=mcl) :: text, sub_mssg
+CHARACTER(LEN=mcl)   :: sub_mssg
 CHARACTER(LEN=mcl)   :: delim, tokens(100), path_tokens(50)
 CHARACTER(LEN=mcl+1) :: next_token
 
