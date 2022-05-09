@@ -17,6 +17,7 @@ CHARACTER(LEN=*), PARAMETER :: out_amount  = "DEBUG" ! "PRODUCTION" ! "ALEXANDRI
 INTEGER, PARAMETER :: sik = 2   ! INTEGER Kind
 INTEGER, PARAMETER :: ik  = 8   ! INTEGER Kind
 INTEGER, PARAMETER :: mik = 4   ! MPI INTEGER Kind; Compile with corresponding mpi.
+INTEGER, PARAMETER :: sk  = 4   ! Single precision real Kind
 INTEGER, PARAMETER :: rk  = 8   ! Real Kind
 INTEGER, PARAMETER :: mcl = 512 ! Max   character length
 INTEGER, PARAMETER :: hcl = 256 ! Half  character length

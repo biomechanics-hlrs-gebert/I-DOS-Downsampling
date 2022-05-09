@@ -23,6 +23,7 @@ IMPLICIT NONE
    INTEGER, PARAMETER :: meta_mik = 4
    INTEGER, PARAMETER :: meta_ik = 8
    INTEGER, PARAMETER :: meta_rk = 8
+   INTEGER, PARAMETER :: meta_sk = 4
    INTEGER, PARAMETER :: meta_mcl = 512
    INTEGER, PARAMETER :: meta_scl = 64
 
@@ -82,10 +83,14 @@ IMPLICIT NONE
    !> \date 10.11.2021
    INTERFACE meta_read
       MODULE PROCEDURE meta_read_C 
-      MODULE PROCEDURE meta_read_I0D 
-      MODULE PROCEDURE meta_read_I1D
-      MODULE PROCEDURE meta_read_R0D
-      MODULE PROCEDURE meta_read_R1D
+      MODULE PROCEDURE meta_read_I0D_mik
+      MODULE PROCEDURE meta_read_I0D_ik 
+      MODULE PROCEDURE meta_read_I1D_mik
+      MODULE PROCEDURE meta_read_I1D_ik
+      MODULE PROCEDURE meta_read_R0D_rk
+      MODULE PROCEDURE meta_read_R0D_sk
+      MODULE PROCEDURE meta_read_R1D_rk
+      MODULE PROCEDURE meta_read_R1D_sk
    END INTERFACE meta_read
 
    !> Interface: meta_write
@@ -863,7 +868,7 @@ chars = TRIM(ADJUSTL(tokens(3)))
 END SUBROUTINE meta_read_C
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: meta_read_I0D
+! SUBROUTINE: meta_read_I0D_ik
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
@@ -874,7 +879,7 @@ END SUBROUTINE meta_read_C
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] int_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I0D (keyword, m_in, int_0D)
+SUBROUTINE meta_read_I0D_ik (keyword, m_in, int_0D)
      
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
@@ -886,10 +891,37 @@ CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
 
 READ(tokens(3), '(I12)') int_0D 
 
-END SUBROUTINE meta_read_I0D
+END SUBROUTINE meta_read_I0D_ik
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: meta_read_R0D
+! SUBROUTINE: meta_read_I0D_mik
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Wrapper to parse Keywords with 0D integer data.
+! 
+!> @param[in] keyword Keyword to read
+!> @param[in] m_in Array of lines of ascii meta file
+!> @param[in] int_0D Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_read_I0D_mik (keyword, m_in, int_0D)
+     
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
+INTEGER(KIND=meta_mik), INTENT(OUT) :: int_0D 
+
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
+
+READ(tokens(3), '(I12)') int_0D 
+
+END SUBROUTINE meta_read_I0D_mik
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_read_R0D_rk
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
@@ -900,7 +932,7 @@ END SUBROUTINE meta_read_I0D
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] real_0D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_R0D (keyword, m_in, real_0D)
+SUBROUTINE meta_read_R0D_rk (keyword, m_in, real_0D)
      
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
@@ -912,10 +944,37 @@ CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
 
 READ(tokens(3), '(F39.10)') real_0D 
 
-END SUBROUTINE meta_read_R0D
+END SUBROUTINE meta_read_R0D_rk
+
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: meta_read_I1D
+! SUBROUTINE: meta_read_R0D_sk
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Wrapper to parse Keywords with 0D floating point data.
+! 
+!> @param[in] keyword Keyword to read
+!> @param[in] m_in Array of lines of ascii meta file
+!> @param[in] real_0D Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_read_R0D_sk (keyword, m_in, real_0D)
+     
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
+REAL(KIND=meta_sk), INTENT(OUT) :: real_0D 
+
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens)
+
+READ(tokens(3), '(F39.10)') real_0D 
+
+END SUBROUTINE meta_read_R0D_sk
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_read_I1D_ik
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
@@ -927,7 +986,7 @@ END SUBROUTINE meta_read_R0D
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] int_1D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I1D (keyword, m_in, int_1D)
+SUBROUTINE meta_read_I1D_ik (keyword, m_in, int_1D)
 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
@@ -939,10 +998,38 @@ CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens)
 
 READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
-END SUBROUTINE meta_read_I1D
+END SUBROUTINE meta_read_I1D_ik
+
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: meta_read_R1D
+! SUBROUTINE: meta_read_I1D_mik
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Wrapper to parse Keywords with 1D integer data.
+! 
+!> @param[in] fh File handle to read a keyword from.
+!> @param[in] keyword Keyword to read
+!> @param[in] m_in Array of lines of ascii meta file
+!> @param[in] int_1D Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_read_I1D_mik (keyword, m_in, int_1D)
+
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
+INTEGER(KIND=meta_mik), DIMENSION(:), INTENT(OUT) :: int_1D 
+
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+
+CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens)
+
+READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
+
+END SUBROUTINE meta_read_I1D_mik
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_read_R1D_rk
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
@@ -953,7 +1040,7 @@ END SUBROUTINE meta_read_I1D
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] real_1D Datatype to read in
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_R1D (keyword, m_in, real_1D)
+SUBROUTINE meta_read_R1D_rk (keyword, m_in, real_1D)
 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
@@ -965,8 +1052,34 @@ CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens)
 
 READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
-END SUBROUTINE meta_read_R1D
+END SUBROUTINE meta_read_R1D_rk
 
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_read_R1D_sk
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Wrapper to parse Keywords with 1D integer data.
+! 
+!> @param[in] keyword Keyword to read
+!> @param[in] m_in Array of lines of ascii meta file
+!> @param[in] real_1D Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_read_R1D_sk (keyword, m_in, real_1D)
+
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
+REAL(KIND=meta_sk), DIMENSION(:), INTENT(OUT) :: real_1D 
+
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+
+CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens)
+
+READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
+
+END SUBROUTINE meta_read_R1D_sk
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_keyword
