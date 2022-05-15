@@ -46,15 +46,15 @@ SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
     shp_in = SHAPE(in_array)
 
     nn = 1_ik
-    DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
+    DO kk=1, SIZE(in_array, DIM=3)-scale_factor(3), scale_factor(3)
         IF (shp_in(3) < kk+scale_factor(3)) CYCLE
 
         mm = 1_ik
-        DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
+        DO jj=1, SIZE(in_array, DIM=2)-scale_factor(2), scale_factor(2)
             IF (shp_in(2) < jj+scale_factor(2)) CYCLE
 
             ll = 1_ik
-            DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
+            DO ii=1, SIZE(in_array, DIM=1)-scale_factor(1), scale_factor(1)
                 IF (shp_in(1) < ii+scale_factor(1)) CYCLE
 
                 out_array(ll, mm, nn) = INT(SUM(REAL(in_array(&
@@ -97,15 +97,15 @@ SUBROUTINE downscale_ik4(in_array, scale_factor, out_array)
     shp_in = SHAPE(in_array)
 
     nn = 1_ik
-    DO kk=1, SIZE(in_array, DIM=3), scale_factor(3)
+    DO kk=1, SIZE(in_array, DIM=3)-scale_factor(3), scale_factor(3)
         IF (shp_in(3) < kk) CYCLE
 
         mm = 1_ik
-        DO jj=1, SIZE(in_array, DIM=2), scale_factor(2)
+        DO jj=1, SIZE(in_array, DIM=2)-scale_factor(2), scale_factor(2)
             IF (shp_in(2) < jj) CYCLE
 
             ll = 1_ik
-            DO ii=1, SIZE(in_array, DIM=1), scale_factor(1)
+            DO ii=1, SIZE(in_array, DIM=1)-scale_factor(1), scale_factor(1)
                 IF (shp_in(1) < ii) CYCLE
 
                 out_array(ll, mm, nn) = SUM(in_array(&

@@ -55,20 +55,6 @@ f90_ext = .f90
 c_ext = .c
 # ------------------------------------------------------------------------------
 clean_cmd = rm -f
-# ------------------------------------------------------------------------------
-# Compilers
-f90_compiler = "mpif90"
-export f90_compiler
-c_compiler = "gcc"
-export c_compiler
-#
-# ------------------------------------------------------------------------------
-# Programming Environment - gnu, LLVM
-# ------------------------------------------------------------------------------
-PE = gnu
-# ------------------------------------------------------------------------------
-# Compile mode - dev, prod - Defined in environment.sh
-compile_MODE = dev
 #
 # ------------------------------------------------------------------------------
 # Inlcude build options
@@ -170,7 +156,7 @@ $(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
 $(obj_dir)mod_image_manipulation$(obj_ext):$(mod_dir)global_std$(mod_ext) \
 								$(f-src_dir)mod_image_manipulation$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_image_manipulation$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_image_manipulation$(f90_ext) -o $@
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_image_manipulation$(f90_ext) -o $@
 	@echo
 
 # -----------------------------------------------------------------------------
