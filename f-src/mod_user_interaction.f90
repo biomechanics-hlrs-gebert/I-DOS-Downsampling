@@ -477,7 +477,7 @@ CHARACTER(LEN=*),  INTENT(IN) :: text
 
 IF (error > 0) THEN
     ! TODO: Repair this routine :-)
-    ! CALL print_trimmed_text(fh, TRIM(text), FMT_ERR)
+    ! CALL print_trimmed(fh, TRIM(text), FMT_ERR)
     WRITE(fh, FMT_ERR) TRIM(text)
     WRITE(fh, FMT_ERR_STOP)
     STOP 
@@ -509,7 +509,7 @@ CHARACTER(LEN=*), INTENT(IN) :: text
 
 IF (error > 0) THEN
     ! TODO: Repair this routine :-)
-    ! CALL print_trimmed_text(fh, TRIM(text), FMT_ERR)
+    ! CALL print_trimmed(fh, TRIM(text), FMT_ERR)
     WRITE(fh, FMT_ERR) TRIM(text)
     WRITE(fh, FMT_ERR_STOP)
     STOP 
@@ -557,7 +557,7 @@ SUBROUTINE estimated_time_of_arrival(sec, string)
 END SUBROUTINE estimated_time_of_arrival
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: print_trimmed_text
+! SUBROUTINE: print_trimmed
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -568,7 +568,7 @@ END SUBROUTINE estimated_time_of_arrival
 !> @param[in] instring Input string
 !> @param[out] outstring Output string
 !------------------------------------------------------------------------------  
-SUBROUTINE print_trimmed_text (fh , instring, frmt)
+SUBROUTINE print_trimmed (fh , instring, frmt)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(LEN=*), INTENT(IN) :: instring
@@ -652,6 +652,6 @@ IF (instring  /= '') THEN
 
 END IF ! (instring  /= '') THEN
 
-END SUBROUTINE print_trimmed_text
+END SUBROUTINE print_trimmed
 
 END MODULE user_interaction

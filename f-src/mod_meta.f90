@@ -142,7 +142,7 @@ lockname=TRIM(in%path)//'.'//TRIM(in%bsnm)//lock_suf
 
 INQUIRE (FILE = TRIM(lockname), EXIST = exist)
 
-IF((restart == 'N') .AND. (exist)) THEN
+IF(((restart == 'N') .OR. (restart == 'NO')) .AND. (exist)) THEN
    mssg='The .*.lock file is set and a restart prohibited by default or the user.'
 
    INQUIRE (FILE = out%full, EXIST = exist)
@@ -842,6 +842,31 @@ END SUBROUTINE meta_extract_keyword_data
 
 
 !------------------------------------------------------------------------------
+! NOT USED ANYMORE. Hard to properly manage all paths to incorporate
+! results grouping and restart handling.
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_inject_result_directory
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Basically moves all results to a subfolder. 
+!> Must be called after reading meta_in and before creating any result file.
+!
+!> @param[inout] ios Status
+!------------------------------------------------------------------------------
+! SUBROUTINE meta_inject_result_directory (ios)
+   
+! INTEGER(KIND=meta_ik), INTENT(INOUT) :: ios
+
+! CALL execute_command_line ('mkdir '//TRIM(in%p_n_bsnm), CMDSTAT=ios)
+
+! IF(ios==0_meta_ik) in%p_n_bsnm = TRIM(in%p_n_bsnm)//TRIM(in%bsnm)
+
+
+! END SUBROUTINE meta_inject_result_directory
+
+!------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_C
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
@@ -1140,7 +1165,6 @@ ELSE
    WRITE(fhmeo, '(A)') "" ! Basically a newline
 END IF
 END SUBROUTINE meta_write_keyword
-
 
 
 !------------------------------------------------------------------------------

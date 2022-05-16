@@ -57,10 +57,10 @@ SUBROUTINE downscale_ik2(in_array, scale_factor, out_array)
             DO ii=1, SIZE(in_array, DIM=1)-scale_factor(1), scale_factor(1)
                 IF (shp_in(1) < ii+scale_factor(1)) CYCLE
 
-                out_array(ll, mm, nn) = INT(SUM(REAL(in_array(&
+                out_array(ll, mm, nn) = INT(REAL(SUM(in_array(&
                     ii:ii+scale_factor(1)-1_ik, &
                     jj:jj+scale_factor(2)-1_ik, &
-                    kk:kk+scale_factor(3)-1_ik), KIND=rk)) / scale_volume, KIND=INT16)
+                    kk:kk+scale_factor(3)-1_ik)), KIND=rk) / scale_volume, KIND=INT16)
                 ll = ll + 1_ik
             END DO
 
@@ -98,20 +98,20 @@ SUBROUTINE downscale_ik4(in_array, scale_factor, out_array)
 
     nn = 1_ik
     DO kk=1, SIZE(in_array, DIM=3)-scale_factor(3), scale_factor(3)
-        IF (shp_in(3) < kk) CYCLE
+        IF (shp_in(3) < kk+scale_factor(3)) CYCLE
 
         mm = 1_ik
         DO jj=1, SIZE(in_array, DIM=2)-scale_factor(2), scale_factor(2)
-            IF (shp_in(2) < jj) CYCLE
+            IF (shp_in(2) < jj+scale_factor(2)) CYCLE
 
             ll = 1_ik
             DO ii=1, SIZE(in_array, DIM=1)-scale_factor(1), scale_factor(1)
-                IF (shp_in(1) < ii) CYCLE
+                IF (shp_in(1) < ii+scale_factor(1)) CYCLE
 
-                out_array(ll, mm, nn) = SUM(in_array(&
+                out_array(ll, mm, nn) = INT(REAL(SUM(in_array(&
                     ii:ii+scale_factor(1)-1_ik, &
                     jj:jj+scale_factor(2)-1_ik, &
-                    kk:kk+scale_factor(3)-1_ik)) / scale_volume
+                    kk:kk+scale_factor(3)-1_ik)), KIND=rk) / scale_volume, KIND=INT32)
                 ll = ll + 1_ik
             END DO
 
