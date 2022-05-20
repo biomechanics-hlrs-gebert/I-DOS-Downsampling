@@ -1524,7 +1524,7 @@ END MODULE meta
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 ! @Description:
-!> Module to convert a *.raw/*.meta data description into a PureDat description
+!> Module to convert a .raw/.meta data description into a PureDat description.
 !
 ! REVISION HISTORY:
 ! 27 11 2021 - Initial version

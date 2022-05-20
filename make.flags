@@ -21,7 +21,7 @@ ifeq ($(PE),gnu)
 	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir)
 	f90_dev_flags  = 	-fdefault-integer-8 -fdefault-real-8 \
 						-finstrument-functions -ggdb -o -O3 \
-						-fbacktrace -fbounds-check \
+						-fbacktrace -fbounds-check  # -cpp -MD \
 						-Wno-conversion -Wall -fbackslash
 	f90_prod_flags = 	-fdefault-integer-8 -fdefault-real-8 -O3
 
