@@ -11,7 +11,7 @@ MODULE global_std
 IMPLICIT NONE
 
 ! Debugging
-CHARACTER(LEN=*), PARAMETER :: out_amount  = "PRODUCTION" ! "DEBUG" ! "PRODUCTION" ! "ALEXANDRIA"
+CHARACTER(LEN=*), PARAMETER :: out_amount = "PRODUCTION" ! "DEBUG" ! "PRODUCTION"
 
 ! General constants
 INTEGER, PARAMETER :: sik = 2   ! INTEGER Kind
