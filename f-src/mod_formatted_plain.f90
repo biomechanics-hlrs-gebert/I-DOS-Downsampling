@@ -44,21 +44,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 SUBROUTINE write_matrix(fh, name, mat, fmti, unit)
 
-INTEGER(KIND=INT64), INTENT(IN) :: fh   
-CHARACTER(LEN=*), INTENT(IN) :: name 
-REAL   (KIND=rk), INTENT(IN), DIMENSION(:, :) :: mat    
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: fmti 
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: unit 
+INTEGER(INT64), INTENT(IN) :: fh   
+REAL(rk), INTENT(IN), DIMENSION(:, :) :: mat    
+CHARACTER(*), INTENT(IN) :: name 
+CHARACTER(*), INTENT(IN), OPTIONAL :: fmti, unit 
 
 ! Internal variables 
-INTEGER(KIND=ik)   :: prec , fw, nm_fmt_lngth, ii, jj, kk, dim1, dim2
-
-CHARACTER(LEN=mcl) :: fmt_a, sep, nm_fmt
-CHARACTER(LEN=mcl) :: text
-CHARACTER(LEN=mcl) :: fmt_u
-
-REAL(KIND=rk) :: sym_out
-
+CHARACTER(mcl) :: fmt_a, sep, nm_fmt, text, fmt_u
+INTEGER(ik) :: prec , fw, nm_fmt_lngth, ii, jj, kk, dim1, dim2
+REAL(rk) :: sym_out
 LOGICAL :: sym
 
 !------------------------------------------------------------------------------
@@ -82,10 +76,10 @@ END IF
 !------------------------------------------------------------------------------
 ! Check symmetry
 !------------------------------------------------------------------------------
-IF (dim1 == dim2) sym = .TRUE.
-
-CALL check_sym(mat, sym_out)
-    
+IF (dim1 == dim2) THEN
+    sym = .TRUE.
+    CALL check_sym(mat, sym_out)
+END IF     
 !------------------------------------------------------------------------------
 ! Generate formats
 !------------------------------------------------------------------------------
@@ -100,8 +94,8 @@ SELECT CASE (TRIM(fmt_u))
         nm_fmt_lngth  = fw*dim2-4-LEN_TRIM(name)-LEN_TRIM(text)
 
    CASE ('spl', 'simple')
-        WRITE(fmt_a,  "(3(A,I0),A)") "(",dim2,"(F10.3))"
-        WRITE(sep  ,  "(A,I0,A)")    "(",dim2*10,"('-'))"        
+        WRITE(fmt_a,  "(3(A,I0),A)") "(",dim2,"(F15.4))"
+        WRITE(sep  ,  "(A,I0,A)")    "(",dim2*15,"('-'))"        
 
         ! Calculate text and unit length. If name to long - overflow formaming to the right
         nm_fmt_lngth  = dim2*10-4-LEN_TRIM(name)-LEN_TRIM(text) 
@@ -185,9 +179,8 @@ END SUBROUTINE write_matrix
 !------------------------------------------------------------------------------  
 SUBROUTINE underscore_to_blank (instring, outstring)
   ! This whole subroutine is a workaround :-)
-  CHARACTER(LEN=*) :: instring
-  CHARACTER(LEN=*) :: outstring
-  INTEGER(KIND=ik) :: ii
+  CHARACTER(*) :: instring, outstring
+  INTEGER(ik) :: ii
 
   outstring=instring
   DO ii=1, LEN_TRIM(instring)
@@ -210,11 +203,11 @@ END SUBROUTINE underscore_to_blank
 !------------------------------------------------------------------------------  
 SUBROUTINE check_tensor_2nd_rank_R66_header(header, abort)
 
-CHARACTER(LEN=*), INTENT(IN) :: header
+CHARACTER(*), INTENT(IN) :: header
 LOGICAL, INTENT(OUT) :: abort
 
-CHARACTER(LEN=mcl) :: tokens(100)
-INTEGER(KIND=ik) :: ntokens
+CHARACTER(mcl) :: tokens(100)
+INTEGER(ik) :: ntokens
 
 abort = .FALSE.
 
@@ -288,7 +281,7 @@ END SUBROUTINE check_tensor_2nd_rank_R66_header
 !------------------------------------------------------------------------------  
 SUBROUTINE write_tensor_2nd_rank_R66_header(fh)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(ik), INTENT(IN) :: fh
 
 !------------------------------------------------------------------------------
 ! Implementation might look silly. But calculating the indices during runtime, 
@@ -361,12 +354,12 @@ END SUBROUTINE write_tensor_2nd_rank_R66_header
 !------------------------------------------------------------------------------  
 SUBROUTINE parse_tensor_2nd_rank_R66_row(row, tensor_of_row, invalid)
 
-CHARACTER(LEN=*), INTENT(IN) :: row
+CHARACTER(*), INTENT(IN) :: row
 TYPE(tensor_2nd_rank_R66), INTENT(OUT) :: tensor_of_row
 LOGICAL, INTENT(OUT) :: invalid
 
-CHARACTER(LEN=mcl) :: tokens(100)
-INTEGER(KIND=ik) :: ntokens, ii, jj, tkn
+CHARACTER(mcl) :: tokens(100)
+INTEGER(ik) :: ntokens, ii, jj, tkn
 
 invalid = .FALSE.
 
@@ -426,10 +419,10 @@ END SUBROUTINE parse_tensor_2nd_rank_R66_row
 !------------------------------------------------------------------------------  
 SUBROUTINE write_tensor_2nd_rank_R66_row(fh, tensor_of_row)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(ik), INTENT(IN) :: fh
 TYPE(tensor_2nd_rank_R66), INTENT(IN) :: tensor_of_row
 
-INTEGER(KIND=ik) :: ii, jj
+INTEGER(ik) :: ii, jj
 
 !------------------------------------------------------------------------------  
 ! The formats are independent of other plain text formats to extract a higher
@@ -480,15 +473,15 @@ END SUBROUTINE write_tensor_2nd_rank_R66_row
 !------------------------------------------------------------------------------  
 SUBROUTINE parse_tensor_2nd_rank_R66(fh, filename, amnt_lines, tensors_in, invalid_entries)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh, amnt_lines
-CHARACTER(LEN=*), INTENT(IN) :: filename
+INTEGER(ik), INTENT(IN) :: fh, amnt_lines
+CHARACTER(*), INTENT(IN) :: filename
 TYPE(tensor_2nd_rank_R66), DIMENSION(:), INTENT(OUT) :: tensors_in
-INTEGER(KIND=ik), INTENT(OUT) :: invalid_entries
+INTEGER(ik), INTENT(OUT) :: invalid_entries
 !------------------------------------------------------------------------------
 ! Line of csv may be pretty long (>40 floats)
 !------------------------------------------------------------------------------
-CHARACTER(LEN=10_ik*mcl) :: header, line
-INTEGER(KIND=ik) :: ii
+CHARACTER(10_ik*mcl) :: header, line
+INTEGER(ik) :: ii
 LOGICAL :: abort, invalid
 
 invalid_entries = 0_ik
@@ -530,10 +523,10 @@ END SUBROUTINE parse_tensor_2nd_rank_R66
 !------------------------------------------------------------------------------  
 SUBROUTINE write_tensor_2nd_rank_R66(fh, amnt_lines, tensors_in)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh, amnt_lines
+INTEGER(ik), INTENT(IN) :: fh, amnt_lines
 TYPE(tensor_2nd_rank_R66), DIMENSION(:), INTENT(IN) :: tensors_in
 
-INTEGER(KIND=ik) :: ii
+INTEGER(ik) :: ii
 
 CALL write_tensor_2nd_rank_R66_header(fh)
 
