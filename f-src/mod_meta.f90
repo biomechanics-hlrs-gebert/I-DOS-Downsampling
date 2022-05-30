@@ -1001,11 +1001,22 @@ CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in
 INTEGER(meta_ik), DIMENSION(:), INTENT(OUT) :: int_1D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
 
-CHARACTER(meta_mcl) :: tokens(30)
+CHARACTER(meta_mcl) :: tokens(30), analayze_tokens(30), args(30)
+INTEGER(meta_ik) :: nargs, ii
 
 CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens, stat)
 
-READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
+analayze_tokens = tokens
+
+!------------------------------------------------------------------------------
+! Check if it is a float
+!------------------------------------------------------------------------------
+DO ii=3, 2+SIZE(int_1D)
+   CALL parse(analayze_tokens(ii), ".", args, nargs)
+   IF(nargs > 1) stat = "Invalid Keyword content! -> "//TRIM(keyword)
+END DO
+
+IF (stat == "") READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
 END SUBROUTINE meta_read_I1D_ik
 
