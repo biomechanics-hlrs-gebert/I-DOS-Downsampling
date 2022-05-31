@@ -1,2 +1,2 @@
 CHARACTER(LEN=scl), PARAMETER :: longname = 'Spatial Image Registration'
-CHARACTER(LEN=scl), PARAMETER :: hash = '838734f01c7fdff3d9bc92cfadae1eb2b5252419'
+CHARACTER(LEN=scl), PARAMETER :: hash = 'c445c95d637425454154bae3a5657bdbc7cf5551'
