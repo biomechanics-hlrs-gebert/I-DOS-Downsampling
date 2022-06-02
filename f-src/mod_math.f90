@@ -1039,4 +1039,24 @@ di = DOT_PRODUCT(unitv, [p(1)-pp1(1), p(2)-pp1(2), p(3)-pp1(3)])
 
 END FUNCTION dist_pnt_pln_by_pnts_sk
 
+
+!------------------------------------------------------------------------------
+! FUNCTION: diagonal3D
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Returns the diagonal of a box
+!
+!> @param[in] box Input box/cube
+!> @return diagonal Diagonal distance
+!------------------------------------------------------------------------------
+FUNCTION diagonal3D(box) result (diagonal)
+
+REAL(rk) :: box(3), diagonal
+
+diagonal = SQRT(box(1)**2 + box(2)**2 + box(3)**2)
+
+END FUNCTION diagonal3D
+
 END MODULE math
