@@ -167,6 +167,76 @@ WRITE(fh, '(A)') '' ! Newline & Carriage return
 END SUBROUTINE write_matrix
 
 !------------------------------------------------------------------------------
+! SUBROUTINE: write_matrix_int
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
+!
+!> @brief
+!> Subroutine to print matrices of integers. Lean functionality. 
+!> Choose reals for other functionality.
+!
+!> @Description
+!> Please provide mat_real OR mat_in :-)
+!> Automatically writes "sym" if hide_zeros .EQV. .TRUE. and left triangle = 0
+!> Hide zeroes is set as default.
+!> Accepted formats: 'std'/'standard' for scientific formatting and
+!> 'spl'/'simple' for traditional formatting
+!
+!> @param[in] fh Handle of file to print to
+!> @param[in] name Name of the object to print
+!> @param[in] mat Actual matrix
+!> @param[in] fmti Formatting of the data
+!> @param[in] unit Physical unit of the information to print
+!------------------------------------------------------------------------------
+SUBROUTINE write_matrix_int(fh, name, mat, unit)
+
+INTEGER(ik), INTENT(IN) :: fh, mat(:,:)
+CHARACTER(*), INTENT(IN) :: name, unit
+
+CHARACTER(mcl) :: fmt_a, sep, nm_fmt, text, fmt_u
+INTEGER(ik) :: prec , fw, nm_fmt_lngth, ii, jj, kk, dim2
+REAL(rk) :: sym_out
+LOGICAL :: sym
+
+!------------------------------------------------------------------------------
+! Initialize and check for presence of the variables
+!------------------------------------------------------------------------------
+text = ''
+dim2 = SIZE(mat, 2)
+fw=8_ik
+IF (unit /= '') text = " Unit: ("//TRIM(unit)//")"
+
+!------------------------------------------------------------------------------
+! Generate formats
+!------------------------------------------------------------------------------
+WRITE(fmt_a, "(2(A,I0),A)") "(",dim2,"(I", fw, "))s"
+WRITE(sep,   "(A,I0,A)")    "(",dim2*fw,"('-'))"
+
+! Calculate text and unit length. If name to long - overflow formaming to the right
+nm_fmt_lngth  = fw*dim2-4-LEN_TRIM(name)-LEN_TRIM(text)
+
+IF (nm_fmt_lngth <= 1_ik) nm_fmt_lngth = 1_ik
+WRITE(nm_fmt, "(A,I0,A)")  "(2('-') ,3A,", nm_fmt_lngth ,"('-'), A)"    
+
+!------------------------------------------------------------------------------
+! Write output
+!------------------------------------------------------------------------------
+WRITE(fh, sep)                                    ! Separator
+WRITE(fh, nm_fmt) ' ',TRIM(name), ' ', TRIM(text) ! Named separator
+
+DO ii=1, SIZE(mat, 1)
+    DO jj=1, SIZE(mat, 2)
+        WRITE(fh, fmt_a, ADVANCE='NO') mat (ii,jj)
+    END DO
+
+    WRITE(fh,'(A)') ''
+END DO        
+
+WRITE(fh, '(A)') '' ! Newline & Carriage return
+END SUBROUTINE write_matrix_int
+
+!------------------------------------------------------------------------------
 ! SUBROUTINE: underscore_to_blank
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
