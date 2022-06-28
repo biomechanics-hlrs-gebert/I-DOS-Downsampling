@@ -13,46 +13,47 @@ USE user_interaction
 USE meta
 USE MPI
 USE raw_binary
+USE formatted_plain
 USE image_manipulation
 
 IMPLICIT NONE
 
-INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer
+INTEGER(ik), PARAMETER :: debug = 2   ! Choose an even integer
 
-CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry
-CHARACTER(LEN=scl) :: type, binary, restart, restart_cmd_arg
-CHARACTER(LEN=mcl) :: cmd_arg_history=''
-CHARACTER(LEN=  8) :: date
-CHARACTER(LEN= 10) :: time
+CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry
+CHARACTER(scl) :: type, binary, restart, restart_cmd_arg
+CHARACTER(mcl) :: cmd_arg_history='', stat='' 
+CHARACTER(  8) :: date
+CHARACTER( 10) :: time
 
-INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2, rry_out_ik2
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4, rry_out_ik4
-INTEGER(KIND=mik), DIMENSION(3) :: sections
-INTEGER(KIND=ik), DIMENSION(3) :: dims, rry_dims, sections_ik=0, rank_section
-INTEGER(KIND=ik), DIMENSION(3) :: scale_factor_ik, new_subarray_origin, remainder
-INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_in_dims, new_glbl_rry_dims, lcl_subarray_in_origin
-INTEGER(KIND=ik), DIMENSION(3) :: new_lcl_rry_out_dims, lcl_subarray_out_origin
-INTEGER(KIND=ik) :: ii=0
+INTEGER(INT16), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik2, rry_out_ik2
+INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4, rry_out_ik4
+INTEGER(mik) :: sections(3), ierr, my_rank, size_mpi
 
-REAL(KIND=rk) :: start, end
-REAL(KIND=rk), DIMENSION(3) :: origin_glbl_shft, spcng, field_of_view
-REAL(KIND=rk), DIMENSION(3) :: new_spacing, offset, scale_factor
+INTEGER(ik), DIMENSION(3) :: dims, rry_dims, sections_ik=0, rank_section, &
+    scale_factor_ik, new_subarray_origin, remainder, &
+    new_lcl_rry_in_dims, new_glbl_rry_dims, lcl_subarray_in_origin, &
+    new_lcl_rry_out_dims, lcl_subarray_out_origin
+INTEGER(ik) :: ii=0   
 
-LOGICAL :: stp
+REAL(rk) :: start, end
+REAL(rk), DIMENSION(3) :: origin_glbl_shft, spcng, field_of_view, new_spacing, &
+    offset, scale_factor
 
-INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
+LOGICAL :: abrt = .FALSE.
+
 
 !------------------------------------------------------------------------------
 ! Invoke MPI 
 !------------------------------------------------------------------------------
 CALL mpi_init(ierr)
-CALL print_err_stop(std_out, "MPI_INIT didn't succeed", INT(ierr, KIND=ik))
+CALL print_err_stop(std_out, "MPI_INIT didn't succeed", INT(ierr, ik))
 
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-CALL print_err_stop(std_out, "MPI_COMM_RANK couldn't be retrieved", INT(ierr, KIND=ik))
+CALL print_err_stop(std_out, "MPI_COMM_RANK couldn't be retrieved", INT(ierr, ik))
 
 CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
-CALL print_err_stop(std_out, "MPI_COMM_SIZE couldn't be retrieved", INT(ierr, KIND=ik))
+CALL print_err_stop(std_out, "MPI_COMM_SIZE couldn't be retrieved", INT(ierr, ik))
 
 IF (size_mpi < 2) CALL print_err_stop(std_out, "At least two ranks required to execute this program.", 1)
 
@@ -66,8 +67,8 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     ! Parse the command arguments
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg, cmd_arg_history)
-    IF(stp) GOTO 1001
+    CALL get_cmd_args(binary, in%full, restart_cmd_arg, cmd_arg_history, stat)
+    IF(stat/='') GOTO 1001
     
     IF (in%full=='') THEN
         CALL usage(binary)    
@@ -84,7 +85,8 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     global_meta_prgrm_mstr_app = 'dos' 
     global_meta_program_keyword = 'DOWNSCALING'
-    CALL meta_append(m_rry)
+    
+    CALL meta_append(m_rry, size_mpi, stat); CALL std_err_handling(stat, abrt)
 
     !------------------------------------------------------------------------------
     ! Redirect std_out into a file in case std_out is not useful by environment.
@@ -97,7 +99,7 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     IF(std_out/=6) CALL meta_start_ascii(std_out, '.std_out')
 
-    CALL show_title()
+    CALL show_title(["Johannes Gebert, M.Sc. (HLRS, NUM)"])
  
     IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/temporary.std_out"
 
@@ -106,13 +108,14 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     WRITE(std_out, FMT_TXT) 'Reading data from *.meta file.'
 
-    CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft)
-    CALL meta_read('TYPE_RAW', m_rry, type)
-    CALL meta_read('SPACING'   , m_rry, spcng)
-    CALL meta_read('DIMENSIONS', m_rry, dims)
-
-    CALL meta_read('SCALE_FACTOR', m_rry, scale_factor_ik)
-    CALL meta_read('RESTART'     , m_rry, restart)
+    CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft, stat); CALL std_err_handling(stat, abrt)
+    
+    CALL meta_read('TYPE_RAW',   m_rry, type , stat); CALL std_err_handling(stat, abrt)
+    CALL meta_read('SPACING'   , m_rry, spcng, stat); CALL std_err_handling(stat, abrt)
+    CALL meta_read('DIMENSIONS', m_rry, dims , stat); CALL std_err_handling(stat, abrt)
+    CALL meta_read('RESTART',    m_rry, restart, stat); CALL std_err_handling(stat, abrt)
+    
+    CALL meta_read('SCALE_FACTOR', m_rry, scale_factor_ik, stat); CALL std_err_handling(stat, abrt)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
@@ -130,13 +133,14 @@ END IF ! my_rank==0
 !------------------------------------------------------------------------------
 ! Send required variables
 !------------------------------------------------------------------------------
-CALL MPI_BCAST(in%p_n_bsnm , INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(type        , INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(in%p_n_bsnm , INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(type        , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+
 CALL MPI_BCAST(scale_factor_ik, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(dims           , 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(spcng          , 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(origin_glbl_shft  , 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(origin_glbl_shft, 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
 
 !------------------------------------------------------------------------------
 ! Get dimensions for each domain. Every processor reveives its own domain.
@@ -149,14 +153,14 @@ CALL MPI_BCAST(origin_glbl_shft  , 3_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_
 sections=0
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
 
-sections_ik = INT(sections, KIND=ik)
+sections_ik = INT(sections, ik)
 
-CALL get_rank_section(INT(my_rank, KIND=ik), sections_ik, rank_section)
+CALL get_rank_section(INT(my_rank, ik), sections_ik, rank_section)
 
 !------------------------------------------------------------------------------
 ! Get new dimensions out of (field of view) / target_spcng
 !------------------------------------------------------------------------------
-scale_factor = REAL(scale_factor_ik, KIND=rk)
+scale_factor = REAL(scale_factor_ik, rk)
 
 new_spacing = spcng * scale_factor
 
@@ -184,7 +188,7 @@ new_glbl_rry_dims = new_lcl_rry_out_dims * sections_ik
 
 field_of_view = new_glbl_rry_dims * new_spacing
 
-lcl_subarray_in_origin = (rank_section-1_ik) * (new_lcl_rry_in_dims) + FLOOR(remainder/2._rk, KIND=ik)
+lcl_subarray_in_origin = (rank_section-1_ik) * (new_lcl_rry_in_dims) + FLOOR(remainder/2._rk, ik)
 lcl_subarray_out_origin = (rank_section-1_ik) * (new_lcl_rry_out_dims)
 
 !------------------------------------------------------------------------------
@@ -302,7 +306,7 @@ END SELECT
 ! Finish program
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
-    CALL meta_write('PROCESSORS'       , '(-)', INT(size_mpi, KIND=ik))
+    CALL meta_write('PROCESSORS'       , '(-)', INT(size_mpi, ik))
     CALL meta_write('SUBARRAY_SECTIONS', '(-)', sections_ik)
     
     CALL meta_write('DIMENSIONS'   , '(-)', new_glbl_rry_dims)
@@ -317,13 +321,13 @@ IF(my_rank == 0) THEN
     WRITE(std_out, FMT_TXT_SEP)
 
     CALL meta_signing(binary)
-    CALL meta_close(size_mpi)
+    CALL meta_close()
 
     IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
 END IF ! (my_rank == 0)
 
 Call MPI_FINALIZE(ierr)
-CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, KIND=ik))
+CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, ik))
 
 END PROGRAM downscaling
