@@ -21,7 +21,7 @@ IMPLICIT NONE
 INTEGER(ik), PARAMETER :: debug = 2   ! Choose an even integer
 
 CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry
-CHARACTER(scl) :: type, binary, restart, restart_cmd_arg
+CHARACTER(scl) :: type, binary, restart, restart_cmd_arg, datarep=''
 CHARACTER(mcl) :: cmd_arg_history='', stat='' 
 CHARACTER(  8) :: date
 CHARACTER( 10) :: time
@@ -31,9 +31,9 @@ INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE :: rry_ik4, rry_out_ik4
 INTEGER(mik) :: sections(3), ierr, my_rank, size_mpi
 
 INTEGER(ik), DIMENSION(3) :: dims, rry_dims, sections_ik=0, rank_section, &
-    scale_factor_ik, new_subarray_origin, remainder, &
-    new_lcl_rry_in_dims, new_glbl_rry_dims, lcl_subarray_in_origin, &
-    new_lcl_rry_out_dims, lcl_subarray_out_origin
+    scale_factor_ik, new_subarray_origin, remainder, new_lcl_rry_in_dims, &
+    new_glbl_rry_dims, lcl_subarray_in_origin, new_lcl_rry_out_dims, &
+    lcl_subarray_out_origin
 INTEGER(ik) :: ii=0   
 
 REAL(rk) :: start, end
@@ -114,7 +114,8 @@ IF (my_rank==0) THEN
     CALL meta_read('SPACING'   , m_rry, spcng, stat); CALL std_err_handling(stat, abrt)
     CALL meta_read('DIMENSIONS', m_rry, dims , stat); CALL std_err_handling(stat, abrt)
     CALL meta_read('RESTART',    m_rry, restart, stat); CALL std_err_handling(stat, abrt)
-    
+
+    CALL meta_read('DATA_BYTE_ORDER', m_rry, datarep, stat); CALL std_err_handling(stat, abrt)
     CALL meta_read('SCALE_FACTOR', m_rry, scale_factor_ik, stat); CALL std_err_handling(stat, abrt)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
@@ -136,6 +137,7 @@ END IF ! my_rank==0
 CALL MPI_BCAST(in%p_n_bsnm , INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(type        , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(datarep, INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 
 CALL MPI_BCAST(scale_factor_ik, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(dims           , 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
@@ -237,22 +239,36 @@ END IF
 !------------------------------------------------------------------------------
 IF(my_rank==0) WRITE(std_out, FMT_TXT) 'Reading image.'
 
+!------------------------------------------------------------------------------
+! Read the clinical scan
+! All ranks, complete image
+!------------------------------------------------------------------------------
+! Convert endianness
+!------------------------------------------------------------------------------
+IF(TRIM(datarep) == "BIG_ENDIAN") THEN
+    datarep = "external32"
+ ELSE
+    datarep = "native"
+ END IF 
+ 
 SELECT CASE(type)
     CASE('ik2') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
-            new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik2)
-
         ALLOCATE(rry_out_ik2(new_lcl_rry_out_dims(1), new_lcl_rry_out_dims(2), new_lcl_rry_out_dims(3)))
+
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
+            new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik2, TRIM(datarep))
+
         IF(my_rank==0) THEN
             WRITE(std_out, FMT_MSG_AxI0) "Min input: ", MINVAL(rry_ik2)
             WRITE(std_out, FMT_MSG_AxI0) "Max input: ", MaxVAL(rry_ik2)
         END IF
 
     CASE('ik4') 
-        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
-            new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik4)
-
         ALLOCATE(rry_out_ik4(new_lcl_rry_out_dims(1), new_lcl_rry_out_dims(2), new_lcl_rry_out_dims(3)))
+
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
+            new_lcl_rry_in_dims, lcl_subarray_in_origin, rry_ik4, TRIM(datarep))
+
         IF(my_rank==0) THEN
             WRITE(std_out, FMT_MSG_AxI0) "Min input: ", MINVAL(rry_ik4)
             WRITE(std_out, FMT_MSG_AxI0) "Max input: ", MaxVAL(rry_ik4)
