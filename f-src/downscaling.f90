@@ -9,12 +9,14 @@ PROGRAM downscaling
 
 USE ISO_FORTRAN_ENV
 USE global_std
-USE user_interaction
+USE mpi_user_interaction
 USE meta
 USE MPI
-USE raw_binary
+USE mpi_binary
+USE ser_binary
 USE formatted_plain
 USE image_manipulation
+USE vtk_meta_data
 
 IMPLICIT NONE
 
@@ -22,7 +24,7 @@ INTEGER(ik), PARAMETER :: debug = 2   ! Choose an even integer
 
 CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry
 CHARACTER(scl) :: type, binary, restart, restart_cmd_arg, datarep=''
-CHARACTER(mcl) :: cmd_arg_history='', stat='' 
+CHARACTER(mcl) :: cmd_arg_history='', stat='' , file='', var=''
 CHARACTER(  8) :: date
 CHARACTER( 10) :: time
 
@@ -38,9 +40,9 @@ INTEGER(ik) :: ii=0
 
 REAL(rk) :: start, end
 REAL(rk), DIMENSION(3) :: origin_glbl_shft, spcng, field_of_view, new_spacing, &
-    offset, scale_factor
+    offset
 
-LOGICAL :: abrt = .FALSE.
+LOGICAL :: abrt = .FALSE., exist=.FALSE.
 
 
 !------------------------------------------------------------------------------
@@ -67,7 +69,7 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     ! Parse the command arguments
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, restart_cmd_arg, cmd_arg_history, stat)
+    CALL get_cmd_args(binary, in%full, restart_cmd_arg, cmd_arg_history)
     IF(stat/='') GOTO 1001
     
     IF (in%full=='') THEN
@@ -85,14 +87,7 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     global_meta_prgrm_mstr_app = 'dos' 
     global_meta_program_keyword = 'DOWNSCALING'
-    
-    CALL meta_append(m_rry, size_mpi, stat); CALL std_err_handling(stat, abrt)
-
-    !------------------------------------------------------------------------------
-    ! Redirect std_out into a file in case std_out is not useful by environment.
-    ! Place these lines before handle_lock_file :-)
-    !------------------------------------------------------------------------------
-    std_out = determine_stout()
+    CALL meta_append(m_rry, size_mpi, binary, stat)
 
     !------------------------------------------------------------------------------
     ! Spawn standard out after(!) the basename is known
@@ -108,15 +103,15 @@ IF (my_rank==0) THEN
     !------------------------------------------------------------------------------
     WRITE(std_out, FMT_TXT) 'Reading data from *.meta file.'
 
-    CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft, stat); CALL std_err_handling(stat, abrt)
+    CALL meta_read('ORIGIN_SHIFT_GLBL', m_rry, origin_glbl_shft, stat); CALL mest(stat, abrt)
     
-    CALL meta_read('TYPE_RAW',   m_rry, type , stat); CALL std_err_handling(stat, abrt)
-    CALL meta_read('SPACING'   , m_rry, spcng, stat); CALL std_err_handling(stat, abrt)
-    CALL meta_read('DIMENSIONS', m_rry, dims , stat); CALL std_err_handling(stat, abrt)
-    CALL meta_read('RESTART',    m_rry, restart, stat); CALL std_err_handling(stat, abrt)
+    CALL meta_read('TYPE_RAW',   m_rry, type , stat); CALL mest(stat, abrt)
+    CALL meta_read('SPACING'   , m_rry, spcng, stat); CALL mest(stat, abrt)
+    CALL meta_read('DIMENSIONS', m_rry, dims , stat); CALL mest(stat, abrt)
+    CALL meta_read('RESTART',    m_rry, restart, stat); CALL mest(stat, abrt)
 
-    CALL meta_read('DATA_BYTE_ORDER', m_rry, datarep, stat); CALL std_err_handling(stat, abrt)
-    CALL meta_read('SCALE_FACTOR', m_rry, scale_factor_ik, stat); CALL std_err_handling(stat, abrt)
+    CALL meta_read('DATA_BYTE_ORDER', m_rry, datarep, stat); CALL mest(stat, abrt)
+    CALL meta_read('SCALE_FACTOR', m_rry, scale_factor_ik, stat); CALL mest(stat, abrt)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
@@ -162,14 +157,12 @@ CALL get_rank_section(INT(my_rank, ik), sections_ik, rank_section)
 !------------------------------------------------------------------------------
 ! Get new dimensions out of (field of view) / target_spcng
 !------------------------------------------------------------------------------
-scale_factor = REAL(scale_factor_ik, rk)
-
-new_spacing = spcng * scale_factor
+new_spacing = spcng * REAL(scale_factor_ik, rk)
 
 remainder = MODULO(dims, scale_factor_ik)
 
-new_lcl_rry_in_dims = (dims - remainder) / sections_ik
-new_lcl_rry_out_dims = (dims - remainder) / sections_ik / scale_factor_ik
+new_lcl_rry_in_dims = (dims - remainder) / sections
+new_lcl_rry_out_dims = (dims - remainder) / sections / scale_factor_ik
 
 !------------------------------------------------------------------------------
 ! Fit local array dimensions to scale_factor
@@ -207,8 +200,7 @@ new_subarray_origin = (rank_section-1_ik) * (rry_dims)
 ! integer based scaling, which deformes the last voxel of dims.
 !------------------------------------------------------------------------------
 
-IF(my_rank == 0) THEN
-    ! DEBUG INFORMATION
+IF((my_rank == 0) .OR. (size_mpi <= 4)) THEN
     IF (debug >= 0) THEN 
         CALL DATE_AND_TIME(date, time)
         
@@ -219,13 +211,13 @@ IF(my_rank == 0) THEN
         WRITE(std_out, FMT_MSG_AxI0) "Debug Level:", debug
         WRITE(std_out, FMT_MSG) "Calculation of domain sectioning:"
         WRITE(std_out, FMT_MSG)
-        WRITE(std_out, FMT_MSG_AxI0) "Scale factor: ", scale_factor_ik
-        WRITE(std_out, FMT_MSG_AxI0) "sections: ", sections_ik
-        WRITE(std_out, FMT_MSG_AxI0) "Input dims: ", dims
-        WRITE(std_out, FMT_MSG_AxI0) "new_lcl_rry_in_dims: ", new_lcl_rry_in_dims
-        WRITE(std_out, FMT_MSG_AxI0) "new_lcl_rry_out_dims: ", new_lcl_rry_out_dims
-        WRITE(std_out, FMT_MSG_AxI0) "Output dims: ", new_glbl_rry_dims
-        WRITE(std_out, FMT_MSG_AxI0) "lcl_subarray_in_origin: ", lcl_subarray_in_origin
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " Scale factor: ", scale_factor_ik
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " sections: ", sections_ik
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " Input dims: ", dims
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " new_lcl_rry_in_dims: ", new_lcl_rry_in_dims
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " new_lcl_rry_out_dims: ", new_lcl_rry_out_dims
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " Output dims: ", new_glbl_rry_dims
+        WRITE(std_out, FMT_MSG_AI0AxI0) "Rank: ", my_rank, " lcl_subarray_in_origin: ", lcl_subarray_in_origin
         WRITE(std_out, FMT_MSG_SEP)
         FLUSH(std_out)
     END IF
@@ -306,10 +298,21 @@ SELECT CASE(type)
             WRITE(std_out, FMT_MSG_AxI0) "Min output: ", MINVAL(rry_out_ik4)
             WRITE(std_out, FMT_MSG_AxI0) "Max output: ", MaxVAL(rry_out_ik4)
         END IF
-        
-        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
-            new_lcl_rry_out_dims, lcl_subarray_out_origin, rry_out_ik4)
-        DEALLOCATE(rry_out_ik4)
+
+
+    IF((my_rank==0) .OR. (size_mpi <=4) .AND. (out_amount=="DEBUG")) THEN
+        write(var, '(I0)') my_rank
+        file = TRIM(out%p_n_bsnm)//"-"//TRIM(var)//vtk_suf
+
+        INQUIRE (FILE = TRIM(file), EXIST = exist)
+
+        IF(.NOT.exist) CALL write_ser_vtk(TRIM(file),'ik4', new_spacing, &
+            new_lcl_rry_out_dims, REAL(lcl_subarray_out_origin, rk)*new_spacing, rry_out_ik4)
+    END IF 
+
+    CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, new_glbl_rry_dims, &
+        new_lcl_rry_out_dims, lcl_subarray_out_origin, rry_out_ik4)
+    DEALLOCATE(rry_out_ik4)
 
 END SELECT
 
@@ -336,10 +339,9 @@ IF(my_rank == 0) THEN
     WRITE(std_out, FMT_TXT_xAF0) 'Finishing the program took', end-start,'seconds.'
     WRITE(std_out, FMT_TXT_SEP)
 
-    CALL meta_signing(binary)
-    CALL meta_close()
+    CALL meta_close(m_rry)
 
-    IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
+    IF (std_out/=6) CALL meta_stop_ascii(std_out, '.std_out')
 
 END IF ! (my_rank == 0)
 

@@ -18,7 +18,120 @@ INTERFACE downscale
     MODULE PROCEDURE downscale_ik4
 END INTERFACE downscale
 
+INTERFACE binarize
+    MODULE PROCEDURE binarize_ik2
+    MODULE PROCEDURE binarize_ik4
+    MODULE PROCEDURE binarize_rk4
+    MODULE PROCEDURE binarize_rk8
+END INTERFACE binarize
+
 CONTAINS
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: binarize_ik2
+!---------------------------------------------------------------------------
+!> @author 
+!> Benjamin Schnabel
+!> Johannes Gebert
+!
+! DESCRIPTION: 
+!> \todo Apply a threshold to an image.
+!
+!> @param[in] dims
+!> @param[in] threshold
+!> @param[inout] array
+!
+! REVISION HISTORY:
+! 30.06.2022 - Initial version
+! 06.09.2022 - Refactored
+! dd.mm.yyyy - describe_appropriate_changes
+!---------------------------------------------------------------------------
+SUBROUTINE binarize_ik2(array, threshold)
+
+INTEGER(INT16), DIMENSION(:,:,:), INTENT(INOUT) :: array
+INCLUDE "./include_f90/binarize.aux.inc"
+
+END SUBROUTINE binarize_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: binarize_ik4
+!---------------------------------------------------------------------------
+!> @author 
+!> Benjamin Schnabel
+!> Johannes Gebert
+!
+! DESCRIPTION: 
+!> \todo Apply a threshold to an image.
+!
+!> @param[in] dims
+!> @param[in] threshold
+!> @param[inout] array
+!
+! REVISION HISTORY:
+! 30.06.2022 - Initial version
+! 06.09.2022 - Refactored
+! dd.mm.yyyy - describe_appropriate_changes
+!---------------------------------------------------------------------------
+SUBROUTINE binarize_ik4(array, threshold)
+
+INTEGER(INT32), DIMENSION(:,:,:), INTENT(INOUT) :: array
+INCLUDE "./include_f90/binarize.aux.inc"
+
+END SUBROUTINE binarize_ik4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: binarize_rk4
+!---------------------------------------------------------------------------
+!> @author 
+!> Benjamin Schnabel
+!> Johannes Gebert
+!
+! DESCRIPTION: 
+!> \todo Apply a threshold to an image.
+!
+!> @param[in] dims
+!> @param[in] threshold
+!> @param[inout] array
+!
+! REVISION HISTORY:
+! 30.06.2022 - Initial version
+! 06.09.2022 - Refactored
+! dd.mm.yyyy - describe_appropriate_changes
+!---------------------------------------------------------------------------
+SUBROUTINE binarize_rk4(array, threshold)
+
+REAL(REAL32), DIMENSION(:,:,:), INTENT(INOUT) :: array
+INCLUDE "./include_f90/binarize.aux.inc"
+
+END SUBROUTINE binarize_rk4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: binarize_rk8
+!---------------------------------------------------------------------------
+!> @author 
+!> Benjamin Schnabel
+!> Johannes Gebert
+!
+! DESCRIPTION: 
+!> \todo Apply a threshold to an image.
+!
+!> @param[in] dims
+!> @param[in] threshold
+!> @param[inout] array
+!
+! REVISION HISTORY:
+! 30.06.2022 - Initial version
+! 06.09.2022 - Refactored
+! dd.mm.yyyy - describe_appropriate_changes
+!---------------------------------------------------------------------------
+SUBROUTINE binarize_rk8(array, threshold)
+
+REAL(REAL64), DIMENSION(:,:,:), INTENT(INOUT) :: array
+INCLUDE "./include_f90/binarize.aux.inc"
+
+END SUBROUTINE binarize_rk8
+
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: downscale_ik2
@@ -170,34 +283,9 @@ CONTAINS
 !------------------------------------------------------------------------------  
 SUBROUTINE filter_ik2(subarray, kernel, srb, result_subarray)
 
-    INTEGER(INT16), DIMENSION(:,:,:), INTENT(IN) :: subarray
-    REAL(rk)      , DIMENSION(:,:,:), INTENT(IN) :: kernel
-    INTEGER(ik)   , DIMENSION(6),     INTENT(IN) :: srb ! subarray_reduced_bndaries
-    INTEGER(INT16), DIMENSION(:,:,:), INTENT(OUT) :: result_subarray
+INTEGER(INT16), DIMENSION(:,:,:), INTENT(INOUT) :: subarray, result_subarray
 
-    INTEGER(ik) :: accumulator, ii, jj, kk, ll, mm, nn, border
-    INTEGER(ik), DIMENSION(3) :: kernel_size
-
-    kernel_size = SIZE(kernel, DIM=1)
-
-    border = (kernel_size(1)-1)/2
-    
-    DO kk = srb(3), srb(6)
-    DO jj = srb(2), srb(5)
-    DO ii = srb(1), srb(4)
-        accumulator = 0
-        DO ll = -border, border
-        DO mm = -border, border
-        DO nn = -border, border
-            accumulator = accumulator + (kernel( ll+border+1_ik, mm+border+1_ik, nn+border+1_ik) * &
-                    subarray(ii + ll, jj + mm, kk + nn))
-        END DO
-        END DO
-        END DO
-        result_subarray(ii - border, jj - border, kk - border) = accumulator
-    END DO
-    END DO
-    END DO
+INCLUDE "./include_f90/filter.inc"
 
 END SUBROUTINE filter_ik2
 
@@ -218,34 +306,9 @@ END SUBROUTINE filter_ik2
 !------------------------------------------------------------------------------  
 SUBROUTINE filter_ik4(subarray, kernel, srb, result_subarray)
 
-    INTEGER(INT32), DIMENSION(:,:,:), INTENT(IN) :: subarray
-    REAL(rk)      , DIMENSION(:,:,:), INTENT(IN) :: kernel
-    INTEGER(ik), DIMENSION(6),     INTENT(IN) :: srb ! subarray_reduced_bndaries
-    INTEGER(INT32), DIMENSION(:,:,:), INTENT(OUT) :: result_subarray
+INTEGER(INT32), DIMENSION(:,:,:), INTENT(INOUT) :: subarray, result_subarray
 
-    INTEGER(ik) :: accumulator, ii, jj, kk, ll, mm, nn, border
-    INTEGER(ik), DIMENSION(3) :: kernel_size
-
-    kernel_size = SIZE(kernel, DIM=1)
-
-    border = (kernel_size(1)-1)/2
-
-    DO kk = srb(3), srb(6)
-    DO jj = srb(2), srb(5)
-    DO ii = srb(1), srb(4)
-        accumulator = 0
-        DO nn = -border, border
-        DO mm = -border, border
-        DO ll = -border, border
-            accumulator = accumulator + (kernel( ll+border+1_ik, mm+border+1_ik, nn+border+1_ik) * &
-                    subarray(ii + ll, jj + mm, kk + nn))
-        END DO
-        END DO
-        END DO
-        result_subarray(ii - border, jj - border, kk - border) = accumulator
-    END DO
-    END DO
-    END DO
+INCLUDE "./include_f90/filter.inc"
 
 END SUBROUTINE filter_ik4
 

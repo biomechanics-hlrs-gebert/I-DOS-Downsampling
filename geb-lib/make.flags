@@ -18,22 +18,24 @@ compile_MODE = dev
 # In this case, the program root/mod directory addressed by the -J 
 # http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
 ifeq ($(PE),gnu)
-	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir)
+	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir) $(f90_inc_path)
 	f90_dev_flags  = 	-fdefault-integer-8 -fdefault-real-8 \
-						-finstrument-functions -ggdb -o -O3 \
-						-fbacktrace -fbounds-check  # -cpp -MD \
-						-Wno-conversion -Wall -fbackslash
-	f90_prod_flags = 	-fdefault-integer-8 -fdefault-real-8 -O3
-
-	c_std_I        = -I$(st_mod_dir)
-	c_dev_flags    = -g -O3
-	c_prod_flags   = -O3
+						-finstrument-functions -ggdb -o -O2 \
+						-fbacktrace -fbounds-check \
+						-Wno-conversion -Wall -fbackslash \
+						-fPIC -fcheck=all # -malloc_debug # -cpp -MD \
+	f90_prod_flags = 	-fdefault-integer-8 -fdefault-real-8 -O2
+	# -fmax-errors=3 -fopenmp
         
 	ifeq ($(compile_MODE),prod)
-		c_flags_f90 = $(f90_std_IJ) $(f90_prod_flags)
-		c_flags_c   = $(c_std_I) $(c_prod_flags)
+		c_flags_f90 = $(f90_std_IJ) $(f90_prod_flags) # -ffpe-summary='none'
 	else
-		c_flags_f90 = $(f90_std_IJ) $(f90_dev_flags)
-		c_flags_c   = $(c_std_I) $(c_dev_flags)
+		c_flags_f90 = $(f90_std_IJ) $(f90_dev_flags) # -ffpe-summary='none'
 	endif
+
+	c_flags_c   = -I$(st_mod_dir) $(c_inc_path) -g -O2
+
+	c_flags_linpack = -J$(mod_dir) -I$(st_mod_dir) -fdefault-integer-8 -g -O2
 endif
+
+# https://lists.mcs.anl.gov/pipermail/petsc-users/2019-December/040027.html

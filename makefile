@@ -61,6 +61,8 @@ html_dir = $(build_path)/html/
 tex_dir  = $(build_path)/latex/
 # ------------------------------------------------------------------------------
 # File extensions and suffixes
+inc_ext = .inc
+mpi_ext = .mpi
 mod_ext = .mod
 obj_ext = .o
 sho_ext = .so
@@ -116,8 +118,11 @@ f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 			$(st_obj_dir)mod_math$(obj_ext)\
 			$(st_obj_dir)mod_mechanical$(obj_ext)\
 			$(st_obj_dir)mod_user_interaction$(obj_ext) \
+			$(st_obj_dir)mod_user_interaction$(mpi_ext)$(obj_ext) \
 			$(st_obj_dir)mod_meta$(obj_ext) \
-			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
+			$(st_obj_dir)mod_ser_binary$(obj_ext)\
+			$(st_obj_dir)mod_par_binary$(mpi_ext)$(obj_ext)\
+			$(st_obj_dir)mod_vtk$(obj_ext)\
 			$(st_obj_dir)mod_formatted_plain$(obj_ext) \
 			$(st_obj_dir)mod_image_manipulation$(obj_ext) \
 			$(obj_dir)downscaling$(obj_ext)
@@ -138,7 +143,9 @@ $(obj_dir)downscaling$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
 									$(st_mod_dir)meta$(mod_ext)\
 									$(st_mod_dir)user_interaction$(mod_ext)\
 									$(st_mod_dir)formatted_plain$(mod_ext)\
-									$(st_mod_dir)raw_binary$(mod_ext)\
+									$(st_mod_dir)vtk_meta_data$(mod_ext)\
+									$(st_mod_dir)ser_binary$(mod_ext)\
+									$(st_mod_dir)mpi_binary$(mod_ext)\
 									$(f_src_dir)downscaling$(f90_ext)
 	@echo "----- Compiling " $(f_src_dir)downscaling$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f_src_dir)downscaling$(f90_ext) -o $@

@@ -19,26 +19,44 @@ IMPLICIT NONE
 ! It is expected that all other information like domain size, filter options 
 ! etc. are described by the meta file format!
 !------------------------------------------------------------------------------
-TYPE tensor_2nd_rank_R66
-   CHARACTER(LEN=scl) :: crit  ! Number of the control volume
-   INTEGER(KIND=ik) :: dmn     ! Number of the control volume
-   REAL(KIND=rk) :: density    ! Percentage of monolothic young modulus
-   REAL(KIND=rk) :: doa_zener  ! Degree of anisotropy
-   REAL(KIND=rk) :: doa_gebert ! Degree of anisotropy
-   REAL(KIND=rk) :: sym        ! Symmetry deviation (quotient)
-   REAL(KIND=rk), DIMENSION(3)   :: pos = 0._rk ! Positioon (deg) of alpha, eta, phi
-   REAL(KIND=rk), DIMENSION(6,6) :: mat = 0._rk
-END TYPE tensor_2nd_rank_R66
+! Changes here may require changes in MPI_TYPE_CREATE_STRUCT!
+!------------------------------------------------------------------------------
+TYPE domain_data
+   INTEGER(ik)    :: section(3)         = 0  ! Position within the CT image
+   INTEGER(ik)    :: dmn                = 0  ! Number of the control volume
+   INTEGER(ik)    :: no_elems           = 0  ! Number of elements of the domain
+   INTEGER(ik)    :: no_nodes           = 0  ! Number of nodes of the domain
+   INTEGER(ik)    :: collected_logs(24) = 0  ! Timestamps during domain computation
+   REAL(rk)       :: dmn_size           = 0. ! Size of the control volume
+   REAL(rk)       :: t_start            = 0. ! Start of the domain after program start (s)
+   REAL(rk)       :: t_duration         = 0. ! Duration of the computation of the domain (s)
+   REAL(rk)       :: phy_dmn_bnds(3,2)  = 0. ! Physical domain boundaries (x,y,z - lo,hi)
+   REAL(rk)       :: opt_res            = 0. ! Resolution the covo was optimized with
+   REAL(rk)       :: pos(3)             = 0. ! Position (deg) of alpha, eta, phi
+   REAL(rk)       :: sym                = 0. ! Symmetry deviation (quotient)
+   REAL(rk)       :: DA                 = 0. ! Degree of anisotropy - Bone gold standard
+   REAL(rk)       :: bvtv               = 0. ! Bone volume/total volume
+   REAL(rk)       :: gray_density       = 0. ! Density based on grayscale values.
+   REAL(rk)       :: doa_zener          = 0. ! Zener degree of anisotropy
+   REAL(rk)       :: doa_gebert         = 0. ! Gebert degree of anisotropy (modified Zener)
+   REAL(rk)       :: mps                = 0. ! Mean principal stiffness
+   REAL(rk)       :: spec_norm          = 0. ! Gebert degree of anisotropy (modified Zener)
+   REAL(rk)       :: num(24,24)         = 0. ! An actual numerical stiffness tensor
+   REAL(rk)       :: mat(6,6)           = 0. ! An actual stiffness tensor
+   CHARACTER(scl) :: opt_crit           = "" ! Optimization information (e.g. criteria)
+   CHARACTER(scl) :: ma_el_type         = "" ! Optimization information (e.g. criteria)
+   CHARACTER(scl) :: mi_el_type         = "" ! Optimization information (e.g. criteria)
+END TYPE domain_data
 
 !------------------------------------------------------------------------------
 ! Characterize a material
 !------------------------------------------------------------------------------
 TYPE materialcard
-    REAL(KIND=rk) :: E
-    REAL(KIND=rk) :: nu
+    REAL(rk) :: E
+    REAL(rk) :: nu
     ! For use with effective nummerical stiffness calculations 
-    REAL(KIND=rk), DIMENSION(3) :: phdsize ! Physical domain/ Macro element size 
-    REAL(KIND=rk), DIMENSION(3) :: delta   ! Spacing of a given discretized material
+    REAL(rk), DIMENSION(3) :: phdsize ! Physical domain/ Macro element size 
+    REAL(rk), DIMENSION(3) :: delta   ! Spacing of a given discretized material
 END TYPE materialcard
 
 CONTAINS
@@ -57,8 +75,8 @@ CONTAINS
 !------------------------------------------------------------------------------  
 FUNCTION doa_zener(mat) RESULT (doa)
 
-   REAL(KIND=rk), DIMENSION(6,6), INTENT(IN) :: mat
-   REAL(KIND=rk) :: doa
+   REAL(rk), DIMENSION(6,6), INTENT(IN) :: mat
+   REAL(rk) :: doa
 
    doa = 2*mat(4,4)/(mat(1,1)-mat(1,2))
 
@@ -80,14 +98,35 @@ END FUNCTION doa_zener
 !------------------------------------------------------------------------------  
 FUNCTION doa_gebert(mat) RESULT (doa)
 
-   REAL(KIND=rk), DIMENSION(6,6), INTENT(IN) :: mat
-   REAL(KIND=rk) :: doa
+   REAL(rk), DIMENSION(6,6), INTENT(IN) :: mat
+   REAL(rk) :: doa
 
    doa = ((mat(4,4)+mat(5,5)+mat(6,6))/3._rk + &
          (SUM(mat(1:3, 4:6)) + SUM(mat(4, 5:6)) + mat(5,6) / 12._rk)) &
             / (mat(1,1)-mat(1,2)) 
 
 END FUNCTION doa_gebert
+
+!------------------------------------------------------------------------------
+! mps
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Mean principal stiffness.
+!
+!> @param[in]  matin Input Matrix
+!> @param[out] mps
+!------------------------------------------------------------------------------  
+FUNCTION mps(matin) RESULT(mean_principal_stiffness)
+
+REAL(rk), DIMENSION(6,6) :: matin
+REAL(rk) :: mean_principal_stiffness
+
+mean_principal_stiffness = (matin(1,1)+matin(2,2)+matin(3,3))/3.0_rk
+END FUNCTION mps
+
+
 
 !------------------------------------------------------------------------------
 ! FUNCTION: lamee_lambda
@@ -103,8 +142,8 @@ END FUNCTION doa_gebert
 !------------------------------------------------------------------------------  
 FUNCTION lamee_lambda(E, v) RESULT (lambda)
  
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: lambda
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: lambda
 
    lambda = E*v/((1._rk+v)*(1._rk-2._rk*v))
 
@@ -124,8 +163,8 @@ END FUNCTION lamee_lambda
 !------------------------------------------------------------------------------  
 FUNCTION lamee_mu_shear(E, v) RESULT (G)
 
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: G ! (shear modulus) 
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: G ! (shear modulus) 
 
    G = E / (2._rk*(1._rk+v))
 
@@ -149,8 +188,8 @@ END FUNCTION lamee_mu_shear
 !------------------------------------------------------------------------------  
 FUNCTION bulk_modulus(E, v) RESULT (k)
 
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: k ! (shear modulus) 
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: k ! (shear modulus) 
 
    k = E / (3._rk*(1._rk-(2._rk*v)))
 
@@ -171,10 +210,10 @@ END FUNCTION bulk_modulus
 !------------------------------------------------------------------------------  
 FUNCTION iso_compliance_voigt(E, v) RESULT (t_iso_inv)
 
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: t_iso_inv
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: t_iso_inv
 
-   REAL (KIND=rk) :: fctr
+   REAL (rk) :: fctr
 
    fctr = 1._rk/E
 
@@ -205,10 +244,10 @@ END FUNCTION iso_compliance_voigt
 !------------------------------------------------------------------------------  
 FUNCTION iso_compliance_kelvin(E, v) RESULT (t_iso_inv)
 
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: t_iso_inv
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: t_iso_inv
 
-   REAL (KIND=rk) :: fctr
+   REAL (rk) :: fctr
 
    fctr = 1._rk/E
 
@@ -239,10 +278,10 @@ END FUNCTION iso_compliance_kelvin
 !------------------------------------------------------------------------------  
 FUNCTION iso_stiffness_voigt(E, v) RESULT (t_iso)
 
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: t_iso
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: t_iso
 
-   REAL (KIND=rk) :: fctr, fctr_shear
+   REAL (rk) :: fctr, fctr_shear
    
    fctr       = E / ((1._rk+v)*(1._rk-(2._rk*v)))
    fctr_shear = 1._rk-(2._rk*v)
@@ -271,10 +310,10 @@ END FUNCTION iso_stiffness_voigt
 !------------------------------------------------------------------------------  
 FUNCTION iso_stiffness_kelvin(E, v) RESULT (t_iso)
 
-   REAL (KIND=rk) :: E, v
-   REAL (KIND=rk), DIMENSION(6,6) :: t_iso
+   REAL (rk) :: E, v
+   REAL (rk), DIMENSION(6,6) :: t_iso
 
-   REAL (KIND=rk) ::fctr, fctr_shear
+   REAL (rk) ::fctr, fctr_shear
    
    fctr       = E / ((1._rk+v)*(1._rk-(2._rk*v))) 
    fctr_shear = 1._rk-(2._rk*v)
@@ -309,10 +348,10 @@ END FUNCTION iso_stiffness_kelvin
 !------------------------------------------------------------------------------  
 FUNCTION gebert_density_voigt(mat, E, v) RESULT (density)
 
-   REAL (KIND=rk), DIMENSION(6,6) :: mat
-   REAL (KIND=rk) :: E, v, density
+   REAL (rk), DIMENSION(6,6) :: mat
+   REAL (rk) :: E, v, density
 
-   REAL (KIND=rk), DIMENSION(6,6) :: dmat, voigt_mat
+   REAL (rk), DIMENSION(6,6) :: dmat, voigt_mat
 
    voigt_mat = iso_stiffness_voigt(E, v)
 

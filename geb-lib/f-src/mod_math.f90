@@ -204,7 +204,7 @@ End Function tra_R6
 
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: check_sym
+! check_sym
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -217,10 +217,10 @@ End Function tra_R6
 !> @param[in]  matin Input Matrix
 !> @param[out] matout Output Matrix
 !------------------------------------------------------------------------------  
-SUBROUTINE check_sym(matin, sym)
+FUNCTION check_sym(matin) RESULT(sym)
 
-REAL(rk), DIMENSION(:,:), INTENT(IN)  :: matin
-REAL(rk), INTENT(OUT) :: sym
+REAL(rk), DIMENSION(:,:) :: matin
+REAL(rk) :: sym
 
 INTEGER(ik) :: ii, jj
 REAL(rk) :: cummu, entry_counter
@@ -254,7 +254,7 @@ END DO
 ! 1 - sym quotient to compare to 0
 !------------------------------------------------------------------------------
 sym = 1._rk - (cummu / entry_counter)
-END SUBROUTINE check_sym
+END FUNCTION check_sym
 
 
 
@@ -1016,26 +1016,26 @@ END FUNCTION dist_pnt_pln_by_pnts_rk
 !------------------------------------------------------------------------------  
 FUNCTION dist_pnt_pln_by_pnts_sk(pp1, pp2, pp3, p) Result(di)
 
-REAL(sk), dimension(3), Intent(IN) :: pp1, pp2, pp3, p
-REAL(sk), dimension(3) :: nn, unitv 
-REAL(sk):: di, magni
+    REAL(sk), dimension(3), Intent(IN) :: pp1, pp2, pp3, p
+    REAL(sk), dimension(3) :: nn, unitv 
+    REAL(sk):: di, magni
 
-!------------------------------------------------------------------------------
-! The normal to the plane
-!------------------------------------------------------------------------------
-nn = crpr_sk(pp1-pp3, pp1-pp2)
+    !------------------------------------------------------------------------------
+    ! The normal to the plane
+    !------------------------------------------------------------------------------
+    nn = crpr_sk(pp1-pp3, pp1-pp2)
 
-!------------------------------------------------------------------------------
-! Magnitude of the normal to the plane
-!------------------------------------------------------------------------------
-magni = SQRT(DOT_PRODUCT(nn, nn))
+    !------------------------------------------------------------------------------
+    ! Magnitude of the normal to the plane
+    !------------------------------------------------------------------------------
+    magni = SQRT(DOT_PRODUCT(nn, nn))
 
-!------------------------------------------------------------------------------
-! Unit vector
-!------------------------------------------------------------------------------
-unitv = nn / magni
+    !------------------------------------------------------------------------------
+    ! Unit vector
+    !------------------------------------------------------------------------------
+    unitv = nn / magni
 
-di = DOT_PRODUCT(unitv, [p(1)-pp1(1), p(2)-pp1(2), p(3)-pp1(3)])
+    di = DOT_PRODUCT(unitv, [p(1)-pp1(1), p(2)-pp1(2), p(3)-pp1(3)])
 
 END FUNCTION dist_pnt_pln_by_pnts_sk
 
@@ -1053,10 +1053,50 @@ END FUNCTION dist_pnt_pln_by_pnts_sk
 !------------------------------------------------------------------------------
 FUNCTION diagonal3D(box) result (diagonal)
 
-REAL(rk) :: box(3), diagonal
+    REAL(rk) :: box(3), diagonal
 
-diagonal = SQRT(box(1)**2 + box(2)**2 + box(3)**2)
+    diagonal = SQRT(box(1)**2 + box(2)**2 + box(3)**2)
 
 END FUNCTION diagonal3D
+
+
+
+! !------------------------------------------------------------------------------
+! ! SUBROUTINE: spectral_norm
+! !------------------------------------------------------------------------------  
+! !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+! !
+! !> @brief
+! !> Calculate the spectral norm for symmetric matrices 
+! !> https://de.mathworks.com/help/symbolic/norm.html
+! !> https://stackoverflow.com/questions/29698600/lapack-giving-me-incorrect-eigenvalues
+! !> https://netlib.org/lapack/explore-html/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html#ga442c43fca5493590f8f26cf42fed4044
+! !> https://www.intel.com/content/www/us/en/develop/documentation/onemkl-lapack-examples/top/least-squares-and-eigenvalue-problems/symmetric-eigenproblems/syev-function/dsyev-example/dsyev-example-fortran.html
+! !>
+! !
+! !> @param[in] mat Input tensor/matrix     
+! !> @param[in] N Dimension of the tensor/matrix
+! !> @param[out] n1 Spectral norm
+! !> @param[out] stat Returns the status (of the eigenvalue computation)
+! !------------------------------------------------------------------------------  
+! SUBROUTINE spectral_norm(mat, N, n1, stat) 
+
+!     REAL(rk), DIMENSION(:,:), INTENT(IN) :: mat
+!     INTEGER(mik), INTENT(IN) :: N
+!     INTEGER(mik), INTENT(OUT) :: stat
+!     REAL(rk), INTENT(OUT) :: n1
+
+!     REAL(rk), ALLOCATABLE :: eigenvalues(:)
+!     INTEGER(mik) :: length_work=-1
+
+!     IF(.NOT. ALLOCATED(eigenvalues)) ALLOCATE(eigenvalues(length_work)); eigenvalues=0._rk
+
+!     CALL DSYEV ('N', 'L', N, MATMUL(TRANSPOSE(mat),mat), &
+!         N, N, eigenvalues, length_work, stat)
+
+!     n1=SQRT(ABS(MAXVAL(eigenvalues)))
+
+! END SUBROUTINE spectral_norm
+
 
 END MODULE math

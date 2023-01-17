@@ -11,7 +11,7 @@ MODULE global_std
 IMPLICIT NONE
 
 ! Debugging
-CHARACTER(LEN=*), PARAMETER :: out_amount =  "DEBUG" ! "PRODUCTION"
+CHARACTER(LEN=*), PARAMETER :: out_amount = "PRODUCTION" !  "DEBUG" ! 
 
 ! General constants
 INTEGER, PARAMETER :: sik = 2   ! INTEGER Kind
@@ -30,17 +30,18 @@ INTEGER(KIND=ik), PARAMETER :: dbg_lvl = 1
 CHARACTER(LEN=mcl) :: mssg = ''
 
 ! Dynamically assigned, must fit to program
-INTEGER(KIND=ik)            :: std_out = 6
 INTEGER(KIND=ik), PARAMETER :: std_in  = 5
-INTEGER(KIND=ik), PARAMETER :: std_err = 0
+INTEGER(KIND=ik)            :: std_out = 6
+INTEGER(KIND=ik)            :: std_err = 0
 
 ! Unsusual, as you may want to see the error messages asap in your root directory.
 INTEGER(KIND=ik), PARAMETER :: fhsterr  = 10
 
 !-- StdOut Characters
 CHARACTER(len=5) :: creturn = achar(13)
+CHARACTER(len=10) :: newline = achar(13)//achar(10) 
 
 ! Provide versioning information for transparent data tracking
-INCLUDE 'include_f90/revision_meta.f90'
+INCLUDE 'include_f90/revision_meta.inc'
 
 END MODULE global_std

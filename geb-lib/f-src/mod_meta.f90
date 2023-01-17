@@ -37,6 +37,8 @@ IMPLICIT NONE
    CHARACTER(kcl) :: global_meta_program_keyword
    CHARACTER(kcl) :: global_meta_prgrm_mstr_app
 
+   LOGICAL :: meta_provenance_compute = .FALSE.
+
    ! Standard files
    INTEGER(meta_ik), PARAMETER :: fh_meta_in  = 20, fhmei  = 20
    INTEGER(meta_ik), PARAMETER :: fh_meta_put = 21, fhmeo  = 21
@@ -205,21 +207,32 @@ END SUBROUTINE meta_compare_restart
 !> @brief
 !> Subroutine to open a meta file to append data/ keywords
 !
-!> @param[inout] m_in Meta data written into a character array
+!> @param[inout] meta_as_rry Meta data written into a character array
 !> @param[in]    size_mpi Size of MPI_COMM
 !> @param[inout] stat Status variable
 !------------------------------------------------------------------------------  
-SUBROUTINE meta_append(meta_as_rry, size_mpi, stat)
+SUBROUTINE meta_append(meta_as_rry, size_mpi, binary, stat)
 
 CHARACTER(meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry      
 INTEGER(meta_mik), INTENT(IN) :: size_mpi
 CHARACTER(meta_mcl), INTENT(INOUT) :: stat
+CHARACTER(*), INTENT(IN) :: binary
 
+
+!------------------------------------------------------------------------------
+! Open/read the input meta file, no matter whether it is a true input or 
+! an output file with provenance information
+!
+! It is important, that this input file already contains all 
+! the - for the job relevant - information.
+!------------------------------------------------------------------------------  
 CALL meta_invoke(meta_as_rry)
-CALL meta_continue(meta_as_rry, size_mpi, stat)
 
-CALL meta_write('META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
- 
+!------------------------------------------------------------------------------
+! Check how to go on with the input information
+!------------------------------------------------------------------------------  
+CALL meta_continue(meta_as_rry, size_mpi, binary, stat)
+
 CALL CPU_TIME(meta_start)
 END SUBROUTINE meta_append
 
@@ -331,57 +344,145 @@ END SUBROUTINE meta_invoke
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
-!> Subroutine to invoke the output meta file
+!> Subroutine to continue withe the mode requested by the user.
 !
-!> @param[inout] m_in Meta data written into a character array
+!> @param[in]    m_in Meta data written into a character array
 !> @param[in]    size_mpi Size of MPI_COMM
+!> @param[in]    binary Name of the programs executable
 !> @param[inout] stat Status variable
 !------------------------------------------------------------------------------  
-SUBROUTINE meta_continue(m_in, size_mpi, stat)
+SUBROUTINE meta_continue(m_in, size_mpi, binary, stat)
 
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 INTEGER(meta_mik), INTENT(IN) :: size_mpi
-
+CHARACTER(*), INTENT(IN) :: binary
 CHARACTER(meta_mcl), INTENT(INOUT) :: stat
 INTEGER(meta_ik) :: ios
+
+CHARACTER(meta_mcl) :: provenance_p_n_bsnm
+
+LOGICAL :: provenance_is_meta = .FALSE., kw_in_programs_scope
 
 CALL meta_read ('NEW_BSNM_FEATURE', m_in, out%features, stat)
 CALL meta_read ('NEW_BSNM_PURPOSE', m_in, out%purpose, stat)
 
-IF ((out%purpose == in%purpose) .AND. (out%features == in%features)) THEN
-   WRITE(std_out,FMT_WRN) 'The basename (in part) did not change.'
+!------------------------------------------------------------------------------  
+! Check provenance of the data set
+! by provenance, you can give the input data as the result data set. 
+! The program will check the provenance, read and compute the preceeding 
+! data set with the parameters given in the meta file.
+!------------------------------------------------------------------------------  
+! The "forked" MeRaDat set has to be a copy of the input data set to read from!
+! Otherwise, the Parameters may not fit to the dataset. However this is not 
+! check by this library to give way more flexibility (!)
+!------------------------------------------------------------------------------  
+! The forked dataset can then be used for reproducing the results.  
+!------------------------------------------------------------------------------  
+CALL meta_read ('PROVENANCE_P_N_BSNM', m_in, provenance_p_n_bsnm, stat, kw_in_programs_scope)
+
+IF(kw_in_programs_scope) THEN
+   IF(stat/="") THEN
+         WRITE(std_out,FMT_MSG) "Keyword 'PROVENANCE_P_N_BSNM' was not given."
+   ELSE
+      IF( (TRIM(ADJUSTL(in%bsnm)) /= TRIM(ADJUSTL(provenance_p_n_bsnm))))THEN
+         INQUIRE(FILE=TRIM(provenance_p_n_bsnm)//TRIM(meta_suf), EXIST=meta_provenance_compute)
+      ELSE
+         WRITE(std_out,FMT_WRN) "The file specified  by 'PROVENANCE_P_N_BSNM' and the input are the same."
+         provenance_is_meta = .TRUE.
+      END IF 
+   END IF 
+END IF 
+
+IF ((.NOT. meta_provenance_compute) .AND. (stat=="") .AND. (kw_in_programs_scope))THEN
+   stat = "The data set specified by 'PROVENANCE_P_N_BSNM' was not found. Program has to abort."
+ELSE
+
+   IF((meta_provenance_compute) .AND. (.NOT. provenance_is_meta) .AND. (kw_in_programs_scope)) THEN
+
+      !------------------------------------------------------------------------------
+      ! This path enables forking from one input to several output meta files
+      !------------------------------------------------------------------------------
+      out = in
+
+      !------------------------------------------------------------------------------
+      ! Close the input file which has to be treated as an output/result file
+      ! This works out because the content of the meta file already 
+      !------------------------------------------------------------------------------
+      ! No copy of the input/output files are necessary, becaues the output file
+      ! was already created by the user, prior to calling this program.
+      !------------------------------------------------------------------------------
+      CLOSE(fhmei)
+
+      WRITE(std_out,FMT_TXT) "Parsing the provenance basename now."
+      CALL parse_basename(provenance_p_n_bsnm, meta_suf)
+
+   ELSE
+      !------------------------------------------------------------------------------
+      ! Copy in to out and assign the new values to update the input meta file.
+      !------------------------------------------------------------------------------
+      out = in  
+
+      !------------------------------------------------------------------------------
+      ! This path behaves like a standard MeRaDat path without a fork
+      !------------------------------------------------------------------------------
+      ! Build the new outfile path
+      !------------------------------------------------------------------------------
+      ! Nomenclature: dataset_type_purpose_app_features
+      ! This assignment requres the out = in assignment before
+      !------------------------------------------------------------------------------
+      out%bsnm = TRIM(out%dataset)//&
+         '_'//TRIM(out%type)//&
+         '_'//TRIM(out%purpose)//&
+         '_'//TRIM(global_meta_prgrm_mstr_app)//&
+         '_'//TRIM(out%features)
+
+      out%p_n_bsnm = TRIM(out%path)//&
+         TRIM(out%bsnm)
+
+      out%full = TRIM(out%p_n_bsnm)//meta_suf
+
+      !------------------------------------------------------------------------------
+      ! System call to update the file name of the meta file
+      !------------------------------------------------------------------------------
+      CALL execute_command_line ('cp '//TRIM(in%full)//' '//TRIM(out%full), CMDSTAT=ios)
+      CALL print_err_stop(std_out, 'The update of the meta filename went wrong.', ios)
+
+   END IF
+
+   !------------------------------------------------------------------------------
+   ! Open the meta output file
+   !------------------------------------------------------------------------------
+   INQUIRE(FILE=TRIM(out%full), EXIST=meta_provenance_compute)
+
+   IF (meta_provenance_compute) THEN
+      OPEN(UNIT=fhmeo, FILE=TRIM(out%full), ACTION='WRITE', ACCESS='APPEND', STATUS='OLD')
+   
+      IF ((out%purpose == in%purpose) .AND. (out%features == in%features)) THEN
+         WRITE(std_out,FMT_WRN) 'The basename (in part) did not change.'
+      END IF
+
+
+      !------------------------------------------------------------------------------
+      ! Only write if the job is not finished
+      !------------------------------------------------------------------------------
+      CALL meta_read ('JOB_FINISHED', m_in, provenance_p_n_bsnm, stat)
+
+      !------------------------------------------------------------------------------
+      ! If the keyword was not found --> Job not finished
+      !------------------------------------------------------------------------------
+      IF(stat == "JOB_FINISHED" ) THEN
+         stat =""
+      
+         WRITE(fhmeo, '(A)')
+         CALL meta_write('PROCESSORS', '(-)', INT(size_mpi, meta_ik))
+         CALL meta_write('JOB_STARTED' , '(-)', binary)
+         CALL meta_write_sha256sum(binary)
+
+      END IF 
+   ELSE
+      stat = "The input meta file "//TRIM(out%full)//" was not found."
+   END IF
 END IF
-
-!------------------------------------------------------------------------------
-! Build the new outfile path
-!------------------------------------------------------------------------------
-! Nomenclature: dataset_type_purpose_app_features
-! This assignment requres the out = in assignment before
-out%bsnm =     TRIM(out%dataset)//&
-          '_'//TRIM(out%type)//&
-          '_'//TRIM(out%purpose)//&
-          '_'//TRIM(global_meta_prgrm_mstr_app)//&
-          '_'//TRIM(out%features)
-
-out%p_n_bsnm = TRIM(out%path)//&
-               TRIM(out%bsnm)
-
-out%full = TRIM(out%p_n_bsnm)//meta_suf
-
-!------------------------------------------------------------------------------
-! System call to update the file name of the meta file
-!------------------------------------------------------------------------------
-CALL execute_command_line ('cp '//TRIM(in%full)//' '//TRIM(out%full), CMDSTAT=ios)
-CALL print_err_stop(std_out, 'The update of the meta filename went wrong.', ios)
-
-!------------------------------------------------------------------------------
-! Open the meta output file
-!------------------------------------------------------------------------------
-OPEN(UNIT=fhmeo, FILE=TRIM(out%full), ACTION='WRITE', ACCESS='APPEND', STATUS='OLD')
-
-WRITE(fhmeo, '(A)')
-
-CALL meta_write('PROCESSORS', '(-)', INT(size_mpi, meta_ik))
 
 END SUBROUTINE meta_continue
 
@@ -417,40 +518,37 @@ INTEGER(meta_ik), INTENT(IN) :: fh
 CHARACTER(*), INTENT(IN) :: suf
 CHARACTER(*), INTENT(IN), OPTIONAL :: access
 
-
-CHARACTER(meta_mcl) :: temp_f_suf, perm_f_suf, access_u
+CHARACTER(3) :: status_of_file
+CHARACTER(meta_mcl) :: perm_f_suf, access_u
 INTEGER(meta_ik) :: ios
 
-LOGICAL :: exist_temp, exist_perm
+LOGICAL :: exist_perm, opened
 
-access_u = 'SEQUENTIAL'
-IF(PRESENT(access)) access_u = TRIM(access)
-
-! The temporaray file is a hidden one.
-temp_f_suf = TRIM(out%path)//'temporary'//TRIM(suf)
 perm_f_suf = TRIM(out%p_n_bsnm)//TRIM(suf)
   
 !------------------------------------------------------------------------------
-! Check for a temporary file
 ! Check for a permanent file
 !------------------------------------------------------------------------------
-INQUIRE (FILE = temp_f_suf, EXIST = exist_temp)
-INQUIRE (FILE = out%p_n_bsnm//TRIM(suf), EXIST = exist_perm)
+INQUIRE (FILE = TRIM(perm_f_suf), OPENED=opened)
+INQUIRE (FILE = TRIM(perm_f_suf), EXIST = exist_perm)
 
 !------------------------------------------------------------------------------
 ! Check whether file needs to be deleted.
 !------------------------------------------------------------------------------
-IF(exist_temp) THEN
-   CALL execute_command_line ('rm -r '//TRIM(temp_f_suf), CMDSTAT=ios)   
-   CALL print_err_stop(std_out, '»'//TRIM(temp_f_suf)//'« not deletable.',ios)
-END IF
-
+access_u = 'APPEND'
 IF(exist_perm) THEN
-   CALL execute_command_line ('rm -r '//TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
-   CALL print_err_stop(std_out, '»'//TRIM(out%full)//'« not deletable.', ios)
+   status_of_file='OLD'
+ELSE
+   status_of_file='NEW'
+!   CALL execute_command_line ('rm -r '//TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
+!   CALL print_err_stop(std_out, '»'//TRIM(out%full)//'« not deletable.', ios)
 END IF
 
-OPEN(UNIT=fh, FILE=TRIM(temp_f_suf), ACTION='WRITE', ACCESS=TRIM(access_u), STATUS='NEW')
+IF(PRESENT(access)) access_u = TRIM(access)
+
+IF(.NOT. opened) THEN
+      OPEN(UNIT=fh, FILE=TRIM(perm_f_suf), ACTION='WRITE', ACCESS=TRIM(access_u), STATUS=status_of_file)
+END IF 
 
 END SUBROUTINE meta_start_ascii
 
@@ -470,48 +568,33 @@ SUBROUTINE meta_stop_ascii(fh, suf)
 INTEGER(meta_ik), INTENT(IN) :: fh
 CHARACTER(*), INTENT(IN) :: suf
 
-CHARACTER(meta_mcl) :: temp_f_suf, perm_f_suf
+CHARACTER(meta_mcl) :: perm_f_suf
 INTEGER  (meta_ik) :: ios
-LOGICAL :: op, fex
+LOGICAL :: opened, fex
 
-op = .FALSE.
+opened = .FALSE.
 fex = .FALSE.
 
-temp_f_suf = TRIM(out%path)//'temporary'//TRIM(suf)
 perm_f_suf = TRIM(out%p_n_bsnm)//TRIM(suf)
 
-INQUIRE(UNIT=fh, OPENED=op)
-IF(op) CLOSE(fh)
+INQUIRE(UNIT=fh, OPENED=opened)
+IF(opened) CLOSE(fh)
 
-INQUIRE(FILE = TRIM(temp_f_suf), EXIST=fex)
+!------------------------------------------------------------------------------
+! In case of an existing ascii file, the in%p_n_bsnm is relevant.
+!------------------------------------------------------------------------------
+INQUIRE(FILE = TRIM(in%p_n_bsnm)//TRIM(suf), EXIST=fex)
 
-IF(fex) THEN
-   !------------------------------------------------------------------------------
-   ! The temporary log file must be renamed to a permanent one
-   !------------------------------------------------------------------------------
-   CALL execute_command_line ('mv '//TRIM(temp_f_suf)//' '//TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
+IF(fex) THEN 
+   CALL execute_command_line ('cp '//TRIM(in%p_n_bsnm)//TRIM(suf)//' '&
+      //TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
 
    IF(ios /= 0_meta_ik) THEN
-      mssg='Can not rename the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
+      mssg='Can not copy the suffix_file from »'//TRIM(in%p_n_bsnm)//TRIM(suf)//'« to '&
+         //TRIM(out%p_n_bsnm)//TRIM(suf)//'.'
       CALL print_err_stop(std_out, mssg, 0)
    END IF
-ELSE
-   !------------------------------------------------------------------------------
-   ! In case of an existing ascii file, the in%p_n_bsnm is relevant.
-   !------------------------------------------------------------------------------
-   INQUIRE(FILE = TRIM(in%p_n_bsnm)//TRIM(suf), EXIST=fex)
-
-   IF(fex) THEN 
-      CALL execute_command_line ('cp '//TRIM(in%p_n_bsnm)//TRIM(suf)//' '&
-         //TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
-
-      IF(ios /= 0_meta_ik) THEN
-         mssg='Can not copy the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
-         CALL print_err_stop(std_out, mssg, 0)
-      END IF
-   END IF 
-
-END IF
+END IF 
 
 END SUBROUTINE meta_stop_ascii
 
@@ -530,13 +613,13 @@ END SUBROUTINE meta_stop_ascii
 !
 !> @param[in] fh File handle of the input
 !> @param[in] suf Suffix of the file
-!> @param[out] amnt_lines Amount of lines in file
+!> @param[out] number_lines Amount of lines in file
 !------------------------------------------------------------------------------  
-SUBROUTINE meta_existing_ascii(fh, suf, amnt_lines)
+SUBROUTINE meta_existing_ascii(fh, suf, number_lines)
 
 INTEGER(meta_ik), INTENT(IN) :: fh
 CHARACTER(*), INTENT(IN) :: suf
-INTEGER(meta_ik), INTENT(OUT) :: amnt_lines
+INTEGER(meta_ik), INTENT(OUT) :: number_lines
 
 LOGICAL :: fex
 
@@ -548,7 +631,7 @@ IF(fex) THEN
    OPEN(UNIT=fh, FILE=TRIM(in%p_n_bsnm)//TRIM(ADJUSTL(suf)),&
       ACTION='READWRITE', STATUS='OLD')
 
-   amnt_lines = count_lines(fh)
+   number_lines = count_lines(fh)
 ELSE
    mssg = "The input file requested does not exist: "//&
       TRIM(in%p_n_bsnm)//TRIM(ADJUSTL(suf))
@@ -611,7 +694,7 @@ SUBROUTINE check_keyword(keyword)
 CHARACTER(*) :: keyword
 CHARACTER(kcl) :: kywd_lngth
 
-kywd_lngth = ''
+kywd_lngth = '' 
 
 IF(LEN_TRIM(keyword) .GT. LEN(kywd_lngth)) THEN
 
@@ -645,6 +728,10 @@ CHARACTER(meta_mcl) :: tokens(30), sgmnts
 
 in%full = TRIM(ADJUSTL(filename))
 
+IF(in%full(LEN_TRIM(in%full)-4:LEN_TRIM(in%full)) /= meta_suf) THEN
+   in%full = TRIM(ADJUSTL(in%full))//meta_suf
+END IF 
+
 !------------------------------------------------------------------------------
 ! Parse all basename and path details.
 !------------------------------------------------------------------------------
@@ -668,8 +755,6 @@ in%type    = TRIM(tokens(2))
 in%purpose = TRIM(tokens(3))
 in%app      = TRIM(tokens(4))
 in%features = TRIM(tokens(5))
-
-out = in  
 
 END SUBROUTINE parse_basename
 
@@ -747,7 +832,7 @@ DO ii =1, SIZE(m_in)
    ! If program id was found - check for the finished tag.
    ! Now, we can safely assume, that the requested program run successfully.
    !------------------------------------------------------------------------------
-   IF ((prog_id_found) .AND. (tokens(2) == "FINISHED_WALLTIME")) success = .TRUE.
+   IF ((prog_id_found) .AND. (tokens(2) == "JOB_FINISHED")) success = .TRUE.
 END DO
 
 END SUBROUTINE meta_check_contains_program
@@ -773,23 +858,26 @@ END SUBROUTINE meta_check_contains_program
 !> @param[in] res_tokens Parsed data
 !> @param[in] stat Status of the file
 !------------------------------------------------------------------------------
-SUBROUTINE meta_extract_keyword_data (keyword, dims, m_in, res_tokens, stat)
+SUBROUTINE meta_extract_keyword_data (keyword, dims, m_in, res_tokens, kw_in_programs_scope, stat)
    
 CHARACTER(*), INTENT(IN) :: keyword
 INTEGER(meta_ik), INTENT(IN) :: dims
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN) :: m_in
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(OUT) :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: res_tokens(30)
 INTEGER(meta_ik) :: res_ntokens
 
 ! Internal variables
-INTEGER(meta_ik) :: kywd_found, ii, ntokens
+INTEGER(meta_ik) :: ii, ntokens
 CHARACTER(meta_mcl) :: tokens(30)
-LOGICAL :: override
+LOGICAL :: kywd_found, programs_scope
 
-kywd_found = 0
-override = .FALSE.
+stat = ""
+kywd_found = .FALSE.
+programs_scope = .FALSE.
+kw_in_programs_scope = .FALSE.
 
 CALL check_keyword(keyword)
 
@@ -803,7 +891,7 @@ DO ii =1, SIZE(m_in)
       CASE('*', 'd', 'r', 'w')
 
          IF (tokens(2) == TRIM(keyword)) THEN
-            kywd_found = 1
+            kywd_found = .TRUE.
 
             !------------------------------------------------------------------------------
             ! Store the keywords data.
@@ -815,57 +903,31 @@ DO ii =1, SIZE(m_in)
             !------------------------------------------------------------------------------
             ! Exit, if the keyword appears the first time in the programs scope.
             !------------------------------------------------------------------------------
-            IF ((override) .AND. (tokens(1) /= 'w')) GOTO 2011
-
+            IF ((programs_scope) .AND. (tokens(1) /= 'w')) THEN
+               kw_in_programs_scope = .TRUE.
+               EXIT
+            END IF
          END IF
       CASE('p')
          !------------------------------------------------------------------------------
          ! The scope of another program begins.
          !------------------------------------------------------------------------------
-         IF ((.NOT. override) .AND. (tokens(2) == TRIM(global_meta_program_keyword))) THEN
-            override = .TRUE.
-         ELSE IF (override) THEN
+         IF ((.NOT. programs_scope) .AND. (tokens(2) == TRIM(global_meta_program_keyword))) THEN
+            programs_scope = .TRUE.
+         ELSE IF (programs_scope) THEN
             !------------------------------------------------------------------------------
             ! Leave, if the scope of the next program begins.
             !------------------------------------------------------------------------------
-            GOTO 2011
+            EXIT
          END IF
 
    END SELECT
 END DO
 
-2011 CONTINUE
-
-IF((res_ntokens < dims+2) .AND. (kywd_found /= 0)) stat = keyword
-IF (kywd_found == 0) stat = keyword
+IF((res_ntokens < dims+2) .AND. (.NOT. kywd_found)) stat = keyword
+IF (.NOT. kywd_found) stat = keyword
 
 END SUBROUTINE meta_extract_keyword_data
-
-
-!------------------------------------------------------------------------------
-! NOT USED ANYMORE. Hard to properly manage all paths to incorporate
-! results grouping and restart handling.
-!------------------------------------------------------------------------------
-! SUBROUTINE: meta_inject_result_directory
-!------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
-!
-!> @brief
-!> Basically moves all results to a subfolder. 
-!> Must be called after reading meta_in and before creating any result file.
-!
-!> @param[inout] ios Status
-!------------------------------------------------------------------------------
-! SUBROUTINE meta_inject_result_directory (ios)
-   
-! INTEGER(meta_ik), INTENT(INOUT) :: ios
-
-! CALL execute_command_line ('mkdir '//TRIM(in%p_n_bsnm), CMDSTAT=ios)
-
-! IF(ios==0_meta_ik) in%p_n_bsnm = TRIM(in%p_n_bsnm)//TRIM(in%bsnm)
-
-
-! END SUBROUTINE meta_inject_result_directory
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_C
@@ -880,16 +942,20 @@ END SUBROUTINE meta_extract_keyword_data
 !> @param[in] chars Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_C (keyword, m_in, chars, stat)
+SUBROUTINE meta_read_C (keyword, m_in, chars, stat, kw_in_programs_scope)
    
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
 CHARACTER(*), INTENT(OUT) :: chars 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30)
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, stat)
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, prgrm_scp, stat)
+
+IF(PRESENT(kw_in_programs_scope)) kw_in_programs_scope = prgrm_scp
 
 chars = TRIM(ADJUSTL(tokens(3)))
 
@@ -908,16 +974,20 @@ END SUBROUTINE meta_read_C
 !> @param[in] int_0D Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I0D_ik (keyword, m_in, int_0D, stat)
+SUBROUTINE meta_read_I0D_ik (keyword, m_in, int_0D, stat, kw_in_programs_scope)
      
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 INTEGER(meta_ik), INTENT(OUT) :: int_0D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30)
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, stat)
+IF(PRESENT(kw_in_programs_scope)) prgrm_scp = kw_in_programs_scope
+
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, prgrm_scp, stat)
 
 READ(tokens(3), '(I12)') int_0D 
 
@@ -936,16 +1006,20 @@ END SUBROUTINE meta_read_I0D_ik
 !> @param[in] int_0D Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I0D_mik (keyword, m_in, int_0D, stat)
+SUBROUTINE meta_read_I0D_mik (keyword, m_in, int_0D, stat, kw_in_programs_scope)
      
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 INTEGER(meta_mik), INTENT(OUT) :: int_0D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30)
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, stat)
+IF(PRESENT(kw_in_programs_scope)) prgrm_scp = kw_in_programs_scope
+
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, prgrm_scp, stat)
 
 READ(tokens(3), '(I12)') int_0D 
 
@@ -965,16 +1039,20 @@ END SUBROUTINE meta_read_I0D_mik
 !> @param[in] real_0D Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_R0D_rk (keyword, m_in, real_0D, stat)
+SUBROUTINE meta_read_R0D_rk (keyword, m_in, real_0D, stat, kw_in_programs_scope)
      
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 REAL(meta_rk), INTENT(OUT) :: real_0D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30)
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, stat)
+IF(PRESENT(kw_in_programs_scope)) prgrm_scp = kw_in_programs_scope
+
+CALL meta_extract_keyword_data (keyword, 1, m_in, tokens, prgrm_scp, stat)
 
 READ(tokens(3), '(F39.10)') real_0D 
 
@@ -994,17 +1072,21 @@ END SUBROUTINE meta_read_R0D_rk
 !> @param[in] int_1D Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I1D_ik (keyword, m_in, int_1D, stat)
+SUBROUTINE meta_read_I1D_ik (keyword, m_in, int_1D, stat, kw_in_programs_scope)
 
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
 INTEGER(meta_ik), DIMENSION(:), INTENT(OUT) :: int_1D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30), analayze_tokens(30), args(30)
 INTEGER(meta_ik) :: nargs, ii
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens, stat)
+IF(PRESENT(kw_in_programs_scope)) prgrm_scp = kw_in_programs_scope
+
+CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens, prgrm_scp, stat)
 
 analayze_tokens = tokens
 
@@ -1035,16 +1117,20 @@ END SUBROUTINE meta_read_I1D_ik
 !> @param[in] int_1D Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_I1D_mik (keyword, m_in, int_1D, stat)
+SUBROUTINE meta_read_I1D_mik (keyword, m_in, int_1D, stat, kw_in_programs_scope)
 
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN)  :: m_in      
 INTEGER(meta_mik), DIMENSION(:), INTENT(OUT) :: int_1D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30)
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens, stat)
+IF(PRESENT(kw_in_programs_scope)) prgrm_scp = kw_in_programs_scope
+
+CALL meta_extract_keyword_data (keyword, SIZE(int_1D), m_in, tokens, prgrm_scp, stat)
 
 READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
@@ -1063,16 +1149,20 @@ END SUBROUTINE meta_read_I1D_mik
 !> @param[in] real_1D Datatype to read in
 !> @param[in] stat Status of the routine
 !------------------------------------------------------------------------------
-SUBROUTINE meta_read_R1D_rk (keyword, m_in, real_1D, stat)
+SUBROUTINE meta_read_R1D_rk (keyword, m_in, real_1D, stat, kw_in_programs_scope)
 
 CHARACTER(*), INTENT(IN) :: keyword
 CHARACTER(meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
 REAL(meta_rk), DIMENSION(:), INTENT(OUT) :: real_1D 
 CHARACTER(meta_scl), INTENT(INOUT) :: stat
+LOGICAL, INTENT(INOUT), OPTIONAL :: kw_in_programs_scope
 
 CHARACTER(meta_mcl) :: tokens(30)
+LOGICAL :: prgrm_scp = .FALSE.
 
-CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens, stat)
+IF(PRESENT(kw_in_programs_scope)) prgrm_scp = kw_in_programs_scope
+
+CALL meta_extract_keyword_data (keyword, SIZE(real_1D), m_in, tokens, prgrm_scp, stat)
 
 READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
@@ -1227,12 +1317,11 @@ END SUBROUTINE meta_write_sha256sum
 !> @param[in] keyword Keyword to write
 !> @param[in] stdspcfill Characters to write
 !------------------------------------------------------------------------------
-SUBROUTINE meta_write_C (keyword, stdspcfill)
+SUBROUTINE meta_write_C (keyword, unit, stdspcfill)
    
-CHARACTER(*), INTENT(IN) :: keyword
-CHARACTER(*), INTENT(IN) :: stdspcfill 
+CHARACTER(*), INTENT(IN) :: keyword, unit, stdspcfill 
 
-CALL meta_write_keyword (keyword, stdspcfill, '')
+CALL meta_write_keyword (keyword, stdspcfill, unit)
 
 END SUBROUTINE meta_write_C
 
@@ -1250,8 +1339,7 @@ END SUBROUTINE meta_write_C
 !------------------------------------------------------------------------------
 SUBROUTINE meta_write_I0D (keyword, unit, int_0D)
    
-CHARACTER(*), INTENT(IN) :: keyword
-CHARACTER(*), INTENT(IN) :: unit
+CHARACTER(*), INTENT(IN) :: keyword, unit
 INTEGER(meta_ik), INTENT(IN) :: int_0D 
 
 CHARACTER(meta_scl) :: stdspcfill
@@ -1278,8 +1366,7 @@ END SUBROUTINE meta_write_I0D
 !------------------------------------------------------------------------------
 SUBROUTINE meta_write_I0D_long (keyword, unit, int_0D)
    
-CHARACTER(*), INTENT(IN) :: keyword
-CHARACTER(*), INTENT(IN) :: unit
+CHARACTER(*), INTENT(IN) :: keyword, unit
 INTEGER(INT64), INTENT(IN) :: int_0D 
 
 CHARACTER(meta_scl) :: stdspcfill
@@ -1304,8 +1391,7 @@ END SUBROUTINE meta_write_I0D_long
 !------------------------------------------------------------------------------
 SUBROUTINE meta_write_R0D (keyword, unit, real_0D)
    
-CHARACTER(*), INTENT(IN) :: keyword
-CHARACTER(*), INTENT(IN) :: unit
+CHARACTER(*), INTENT(IN) :: keyword, unit
 REAL(meta_ik), INTENT(IN) :: real_0D 
 
 CHARACTER(meta_scl) :: stdspcfill, frmt
@@ -1334,8 +1420,7 @@ END SUBROUTINE meta_write_R0D
 !------------------------------------------------------------------------------
 SUBROUTINE meta_write_I1D (keyword, unit, int_1D)
    
-CHARACTER(*), INTENT(IN) :: keyword
-CHARACTER(*), INTENT(IN) :: unit
+CHARACTER(*), INTENT(IN) :: keyword, unit
 INTEGER(meta_ik), INTENT(IN), DIMENSION(:) :: int_1D 
 
 CHARACTER(meta_scl) :: stdspcfill, str, frmt
@@ -1369,8 +1454,7 @@ END SUBROUTINE meta_write_I1D
 !------------------------------------------------------------------------------
 SUBROUTINE meta_write_R1D (keyword, unit, real_1D)
    
-CHARACTER(*), INTENT(IN) :: keyword
-CHARACTER(*), INTENT(IN) :: unit
+CHARACTER(*), INTENT(IN) :: keyword, unit
 REAL(meta_rk), INTENT(IN), DIMENSION(:) :: real_1D 
 
 CHARACTER(meta_scl) :: stdspcfill, str, frmt
@@ -1393,61 +1477,41 @@ CALL meta_write_keyword (keyword, stdspcfill, unit)
 END SUBROUTINE meta_write_R1D
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: meta_signing
-!------------------------------------------------------------------------------
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
-!
-!> @brief
-!> Subroutine to close a meta file.
-!
-!> @description
-!> Requires a "revision.meta" or similar inclusion of verisoning info, 
-!> provided by a makefile. Furhermore, it requires a global_stds file.
-!> Some of the variables are retrieved from global_std module.
-!
-!> @param[in] binary Name of the executable
-!------------------------------------------------------------------------------
-SUBROUTINE meta_signing(binary)
-
-CHARACTER(*), INTENT(IN) :: binary
-
-INTEGER  (meta_ik) :: ntokens
-CHARACTER(meta_mcl) :: tokens(30), revision
-
-CALL parse(TRIM(binary), '_', tokens, ntokens)
-
-revision = TRIM(tokens(2))
-
-WRITE(fhmeo, '(A)')
-CALL meta_write('PROGRAM_VERSION', TRIM(revision))
-CALL meta_write('PROGRAM_GIT_HASH', hash)
-
-CALL meta_write_sha256sum(binary)
-
-END SUBROUTINE meta_signing
-
-
-!------------------------------------------------------------------------------
 ! SUBROUTINE: meta_close
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
 !> Subroutine to close a meta file.
-!
-!> @description
-!> provided by a makefile. Furhermore, it requires a global_stds file.
 !------------------------------------------------------------------------------
-SUBROUTINE meta_close()
+SUBROUTINE meta_close(meta_as_rry, no_restart_required)
 
 LOGICAL :: opened
+CHARACTER(meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry      
+LOGICAL, INTENT(INOUT), OPTIONAL :: no_restart_required
+REAL(rk) :: job_finished
+CHARACTER(meta_scl) :: stat
 
+LOGICAL :: no_restart = .TRUE.
+
+IF(PRESENT(no_restart_required)) no_restart = no_restart_required
+
+stat = ""
 CALL CPU_TIME(meta_end)
 
-CALL meta_write('FINISHED_WALLTIME' , '(s)', (meta_end-meta_start))
+!------------------------------------------------------------------------------
+! Only write if the job is finished and the Keyword was not already written.
+!------------------------------------------------------------------------------
+CALL meta_read ('JOB_FINISHED', meta_as_rry, job_finished, stat)
 
-WRITE(fhmeo, '(A)')
-WRITE(fhmeo, "(100('-'))")
+IF((no_restart) .AND. (stat/="")) THEN
+
+   WRITE(fhmeo, '(A)')
+   CALL meta_write('JOB_FINISHED' , '(-)', (meta_end))
+
+   WRITE(fhmeo, '(A)')
+   WRITE(fhmeo, "(100('-'))")
+END IF 
 
 !------------------------------------------------------------------------------
 ! Check and close files - Routine: (fh, filename, abrt, stat)
@@ -1545,7 +1609,7 @@ LOGICAL :: opened, fex
 CHARACTER(*), PARAMETER :: PDM_arrowsA  = "('<',A,'> ', A)"
 CHARACTER(*), PARAMETER :: PDM_arrowsL  = "('<',A,'> ', L)"
 CHARACTER(*), PARAMETER :: PDM_arrowsI0 = "('<',A,'> ', I0)"
-CHARACTER(*), PARAMETER :: PDM_branch  = "('<==branch==>')"
+CHARACTER(*), PARAMETER :: PDM_branch   = "('<==branch==>')"
 
 !------------------------------------------------------------------------------
 ! Initialize variables
@@ -1561,8 +1625,8 @@ fex = .FALSE.
 INQUIRE(UNIT=fhmei, OPENED=opened)
 
 IF(.NOT. opened) THEN
-   CALL print_err_stop(stdout, TRIM(in%full)//" not opened. Check your implementation!", 1)
-END IF
+   OPEN(UNIT=fhmei, FILE=TRIM(in%full), ACTION='WRITE', ACCESS='APPEND', STATUS='OLD')
+END IF 
 
 !------------------------------------------------------------------------------
 ! Gather the size of the resulting stream
@@ -1626,7 +1690,7 @@ IF(suf /= '') THEN
             CALL EXECUTE_COMMAND_LINE &
                 ("cp -r "//TRIM(in%p_n_bsnm)//".raw "//TRIM(in%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
 
-            WRITE(std_out, FMT_WRN) "Raw file copied to int4 stream! May take/took a while..."
+            WRITE(std_out, FMT_WRN) "Raw file copied to integer stream! May take/took a while..."
 
             IF(ios /= 0) CALL print_err_stop(stdout, &
                 "Renaming "//TRIM(in%p_n_bsnm)//".raw to "//TRIM(in%p_n_bsnm)//TRIM(suf)//" failed.", 1)
@@ -1726,10 +1790,12 @@ DO ii=1, 6
    ! Write the binary information ('phi') to file
    !------------------------------------------------------------------------------
    SELECT CASE(TRIM(datatype))
-      CASE('ik2')
-         IF(ii == 2) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
-      CASE('ik4')
-         IF(ii == 3) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
+   CASE('ik1')
+      IF(ii == 1) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
+   CASE('ik2')
+      IF(ii == 2) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
+   CASE('ik4')
+      IF(ii == 3) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
    END SELECT
 
    !------------------------------------------------------------------------------

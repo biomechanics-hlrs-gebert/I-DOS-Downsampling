@@ -8,6 +8,6 @@ fh = give_new_unit()
 
 CALL write_vtk_struct_points_header(fh, TRIM(filename), TRIM(type), spcng, origin, dims)
 
-CALL ser_write_raw(fh, TRIM(filename), array, 'BIG_ENDIAN')
+CALL ser_write_binary(fh, TRIM(filename), array, 'BIG_ENDIAN')
 
 CALL write_vtk_struct_points_footer(fh, TRIM(filename))

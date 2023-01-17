@@ -9,7 +9,6 @@
 MODULE user_interaction
 
 USE ISO_FORTRAN_ENV
-USE MPI
 USE global_std
 USE strings
 
@@ -207,7 +206,9 @@ CHARACTER(*), PARAMETER ::  FMT_nocolor = "\x1B[0m"
 !> \author Johannes Gebert
 !> \date 16.03.2022
 INTERFACE print_err_stop
-    MODULE PROCEDURE print_err_stop_ik4
+    MODULE PROCEDURE print_err_stop_ik44
+    MODULE PROCEDURE print_err_stop_ik48
+    MODULE PROCEDURE print_err_stop_ik84
     MODULE PROCEDURE print_err_stop_ik8
 END INTERFACE print_err_stop
 
@@ -223,18 +224,16 @@ CONTAINS
 !
 !> @param[out] binary Name of the program
 !> @param[out] infile Name of the input file (not meta; XTOM...)
-!> @param[out] stat Stop the program?
 !> @param[out] restart Check whether a restart is required
 !> @param[out] cmd_arg_history Ravision of the program
 !------------------------------------------------------------------------------
-SUBROUTINE get_cmd_args(binary, infile, restart, cmd_arg_history, stat)
+SUBROUTINE get_cmd_args(binary, infile, restart, cmd_arg_history)
 
-CHARACTER(*), INTENT(OUT) :: binary, infile, restart, cmd_arg_history, stat
+CHARACTER(*), INTENT(OUT) :: binary, infile, restart, cmd_arg_history
 
 CHARACTER(mcl) :: cmd_arg
 INTEGER(ik) :: ii
 
-stat = ''
 restart=''
 
 CALL GET_COMMAND_ARGUMENT(0, binary)
@@ -244,7 +243,6 @@ IF (command_argument_count() == 0) THEN
     CALL usage(binary)
 
     mssg = "No command argument given."
-    stat =''
 ELSE
     DO ii=0, 15 ! Read up to 15 command arguments.
     
@@ -262,10 +260,8 @@ ELSE
                 restart = 'Y'
             CASE('v', '-Version', '-version')
                 CALL show_title([""])
-                stat = ''
             CASE('h', '-Help', '-help')
                 CALL usage(binary)
-                stat = ''
             END SELECT
             !
             SELECT CASE( cmd_arg(3:4) )
@@ -276,7 +272,6 @@ ELSE
 
     IF(TRIM(infile) == '') THEN
         mssg = "No input file given via command argument."
-        stat = ''
     END IF 
 END IF
 
@@ -290,24 +285,16 @@ END SUBROUTINE get_cmd_args
 !> @brief
 !> Show brief information about the program. Variables from global_std module!
 !------------------------------------------------------------------------------
-SUBROUTINE show_title(authors, longname_opt)
+SUBROUTINE show_title(authors)
 
 CHARACTER(*), DIMENSION(:), INTENT(IN) :: authors
-CHARACTER(*), OPTIONAL,     INTENT(IN) :: longname_opt
 
-CHARACTER(scl):: app_name
 INTEGER(ik) :: ii
-
-IF(PRESENT(longname_opt)) THEN
-    app_name = TRIM(ADJUSTL(longname_opt))
-ELSE
-    app_name = longname
-END IF 
 
 WRITE(std_out, FMT_TXT_SEP)
 WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
 WRITE(std_out, FMT_TXT) ''
-WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(app_name))
+WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(longname))
 WRITE(std_out, FMT_TXT) ''     
 
 DO ii=1, SIZE(authors)
@@ -328,12 +315,12 @@ END SUBROUTINE show_title
 !> Print program usage. 
 !
 !> @param[in] this_binary Name of the binary - for example parsed from cmd args
-!> @param[in] additional_text Additional usage information
+!> @param[in] mssg Additional usage information
 !------------------------------------------------------------------------------  
-SUBROUTINE usage(this_binary, additional_text)
+SUBROUTINE usage(this_binary, mssg)
 
 CHARACTER(*), INTENT(IN) :: this_binary
-CHARACTER(*), DIMENSION(:), INTENT(IN), OPTIONAL :: additional_text
+CHARACTER(*), DIMENSION(:), INTENT(IN), OPTIONAL :: mssg
 
 INTEGER :: ii
 
@@ -341,9 +328,9 @@ WRITE(std_out, FMT_TXT) 'Usage:'
 WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(this_binary))//' '//'<flags> <basename.meta>'
 WRITE(std_out, FMT_TXT) ''
 
-IF(PRESENT(additional_text)) THEN
-    DO ii = 1, SIZE(additional_text)
-        WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(additional_text(ii)))
+IF(PRESENT(mssg)) THEN
+    DO ii = 1, SIZE(mssg)
+        WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(mssg(ii)))
     END DO
 END IF 
 
@@ -359,32 +346,36 @@ END SUBROUTINE usage
 
 
 !------------------------------------------------------------------------------
-! FUNCITON: determine_stout
+! SUBROUTINE: determine_std_fh
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Check whether the program can access a std_out. Usually given by the
+!> Check whether the program can access a std_out/std_err. Usually given by the
 !> environment settings. Fall back always results in writing to a file.
 !
-!> @return fh_std_out File handle of the »real« std_out
+!> @parameter[out] fh_std_out File handle of the »real« std_out
+!> @parameter[out] fh_std_err File handle of the »real« std_err
 !------------------------------------------------------------------------------  
-FUNCTION determine_stout() RESULT(fh_std_out)
+SUBROUTINE determine_std_fh(fh_std_out, fh_std_err)
 
-INTEGER(ik) :: fh_std_out
+INTEGER(ik), INTENT(OUT) :: fh_std_out
+INTEGER(ik), INTENT(OUT), OPTIONAL :: fh_std_err
 
 INTEGER(ik) :: stat
 CHARACTER(scl) :: use_std_out
 
 CALL GET_ENVIRONMENT_VARIABLE(NAME='USE_STD_OUT', VALUE=use_std_out, STATUS=stat)
 
-IF ((stat == 0) .AND. (use_std_out == 'YES')) THEN
+IF ((stat == 0) .AND. ((use_std_out == 'YES') .OR. (use_std_out == 'Y'))) THEN
     fh_std_out = 6 ! Standard std_out
+    fh_std_err = 0 ! Standard std_err
 ELSE
     fh_std_out = give_new_unit()
+    fh_std_err = give_new_unit()
 END IF
  
-END FUNCTION determine_stout
+END SUBROUTINE determine_std_fh
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: give_new_unit
@@ -423,35 +414,7 @@ END IF
 End function give_new_unit
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: mpi_err
-!------------------------------------------------------------------------------  
-!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
-!
-!> @brief
-!> Evaluates allocation errors
-!
-!> @param[in] ierr Errorcode 
-!> @param[out] text Message to print
-!------------------------------------------------------------------------------  
-subroutine mpi_err(ierr, text)
-
-    !-- Dummy parameters
-    integer(mik), intent(in) :: ierr
-    character(*), intent(in) :: text
-   
-    if (ierr /= MPI_SUCCESS) THEN
-        write(*, "(100('!'))")
-        write(*, '(A,I0,A)') 'MPI ERROR :', ierr,";"
-        write(*, '(A)') trim(text)
-        write(*, "(100('!'))")
-        write(*, *) 'Exit ...'
-        stop
-    end if
-   
-end subroutine mpi_err
-
-!------------------------------------------------------------------------------
-! SUBROUTINE: print_err_stop_ik4
+! SUBROUTINE: print_err_stop_ik44
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -467,13 +430,79 @@ end subroutine mpi_err
 !> @param[in] text Error message to print
 !> @param[in] error Errorcode / status of the message
 !------------------------------------------------------------------------------  
-SUBROUTINE print_err_stop_ik4(fh, text, error)
+SUBROUTINE print_err_stop_ik44(fh, text, error)
+
+    INTEGER(mik),  INTENT(IN) :: fh
+    INTEGER(mik), INTENT(IN) :: error
+    CHARACTER(*),  INTENT(IN) :: text
+    
+    IF (error >= 1) THEN
+        ! TODO: Repair this routine :-)
+        ! CALL print_trimmed(fh, TRIM(text), FMT_ERR)
+        WRITE(fh, FMT_ERR) TRIM(text)
+        WRITE(fh, FMT_ERR_STOP)
+        STOP 
+    END IF
+    
+END SUBROUTINE print_err_stop_ik44
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: print_err_stop_ik48
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Stop a program.
+!
+!> @description
+!> Aborts non-gracefull with a stop on one processor if err > 0. 
+!> Err /= 0 is required to call this routine after another one 
+!> with a status feedback.
+!
+!> @param[in] fh Handle of file to print to
+!> @param[in] text Error message to print
+!> @param[in] error Errorcode / status of the message
+!------------------------------------------------------------------------------  
+SUBROUTINE print_err_stop_ik48(fh, text, error)
+
+    INTEGER(mik),  INTENT(IN) :: fh
+    INTEGER(ik), INTENT(IN) :: error
+    CHARACTER(*),  INTENT(IN) :: text
+    
+    IF (error >= 1) THEN
+        ! TODO: Repair this routine :-)
+        ! CALL print_trimmed(fh, TRIM(text), FMT_ERR)
+        WRITE(fh, FMT_ERR) TRIM(text)
+        WRITE(fh, FMT_ERR_STOP)
+        STOP 
+    END IF
+    
+END SUBROUTINE print_err_stop_ik48
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: print_err_stop_ik84
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Stop a program.
+!
+!> @description
+!> Aborts non-gracefull with a stop on one processor if err > 0. 
+!> Err /= 0 is required to call this routine after another one 
+!> with a status feedback.
+!
+!> @param[in] fh Handle of file to print to
+!> @param[in] text Error message to print
+!> @param[in] error Errorcode / status of the message
+!------------------------------------------------------------------------------  
+SUBROUTINE print_err_stop_ik84(fh, text, error)
 
 INTEGER(ik),  INTENT(IN) :: fh
 INTEGER(mik), INTENT(IN) :: error
 CHARACTER(*),  INTENT(IN) :: text
 
-IF (error > 0) THEN
+IF (error >= 1) THEN
     ! TODO: Repair this routine :-)
     ! CALL print_trimmed(fh, TRIM(text), FMT_ERR)
     WRITE(fh, FMT_ERR) TRIM(text)
@@ -481,7 +510,7 @@ IF (error > 0) THEN
     STOP 
 END IF
 
-END SUBROUTINE print_err_stop_ik4
+END SUBROUTINE print_err_stop_ik84
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: print_err_stop_ik8
@@ -505,7 +534,7 @@ SUBROUTINE print_err_stop_ik8(fh, text, error) ! , pro_path, pro_name
 INTEGER(ik), INTENT(IN) :: fh , error
 CHARACTER(*), INTENT(IN) :: text
 
-IF (error > 0) THEN
+IF (error >= 1) THEN
     ! TODO: Repair this routine :-)
     ! CALL print_trimmed(fh, TRIM(text), FMT_ERR)
     WRITE(fh, FMT_ERR) TRIM(text)
@@ -608,7 +637,8 @@ IF (instring  /= '') THEN
             !------------------------------------------------------------------------------  
             ! path_ntokens = 1
             !------------------------------------------------------------------------------  
-            IF (sw==2) CALL parse(str = tokens(ii), delims='/', args = path_tokens, nargs = path_ntokens)
+            IF (sw==2) CALL parse(str = tokens(ii), delims='/', &
+                args = path_tokens, nargs = path_ntokens)
 
             IF (path_ntokens .GT. 1) sw=1
             
