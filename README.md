@@ -19,7 +19,7 @@ cat ./datasets/I-DOS.meta.template >> Your_Meta_File.meta
 ## Usage
 For example for testing on julius:
 ```
-mpirun ./bin/dos_v1.0.0_x86_64 -np 4 <basename>.meta```
+./bin/dos_v1.5.0_x86_64 <basename>.meta```
 ```
 ## Datasets
 ... are transfered via file exchange and are not pushed into the repository. 
@@ -27,28 +27,16 @@ mpirun ./bin/dos_v1.0.0_x86_64 -np 4 <basename>.meta```
 * x86 64bit Hardware
 * Linux x86 64Bit Installation with Bash or Zsh
 * GNU Compiler Collection (GCC), especially with gfortran
-* An installation of Open-MPI
-* Geberts libraries. Managed by: ```./manage_geb-lib.sh```
 
 The program must be compiled with:
 * Global integer kind=64Bit, signed
 * Meta-format integer kind=64Bit, signed
-* MPI integer kind=32Bit
 
-The installation of Open MPI is simplified with the install script of the repository "Overview" of the biomechanics-hlrs-gebert organization @GitHub.
-### Optional: Gnu debugging
-* [gdb](https://www.gnu.org/software/gdb/)
-* [tmpi](https://github.com/Azrael3000/tmpi)
-* [tmux](https://github.com/tmux/tmux/wiki)
 ## Build
 It's tested and therefore recommended to build and run the program as follows.
 ### Set up the Environment
-```vim ./auxiliaries/system_environments/<system>.sh```
+```vim ./auxiliaries/system_environments/<system>.env```
 ```source ./environment.source <system>``` 
-
-* Set an architecture/a system
-  * Give the absolute base path of your mpi-installation
-  * Alternatively give the proper module names of your compute cluster
 
 ### Run make:
 Build the program:    ```make```
