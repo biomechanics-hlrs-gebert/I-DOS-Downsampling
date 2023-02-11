@@ -1,2 +1,2 @@
 CHARACTER(LEN=scl), PARAMETER :: longname = 'Downscaling'
-CHARACTER(LEN=scl), PARAMETER :: hash = '36ef05b5201dd77d0fc9c1d0d9ea434bfa99b2b5'
+CHARACTER(LEN=scl), PARAMETER :: hash = '7a7b60dc3127660b9de46d8b265bdd117552ee36'

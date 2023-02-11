@@ -134,6 +134,7 @@ CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
 CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER4, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
 
+IF(.NOT. ALLOCATED(subarray)) ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
 
 CALL MPI_FILE_READ(fh, subarray, INT(SIZE(subarray), mik), MPI_INTEGER4, MPI_STATUS_IGNORE, ierr)
 
