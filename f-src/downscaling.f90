@@ -1,12 +1,12 @@
 !------------------------------------------------------------------------------
-! MODULE: auxiliaries_of_downscaling
+! MODULE: auxiliaries_of_downsampling
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 ! @Description:
 !> Module containing additional routines for the main program.
 !------------------------------------------------------------------------------
-MODULE auxiliaries_of_downscaling
+MODULE auxiliaries_of_downsampling
 
 USE ISO_FORTRAN_ENV
 USE global_std
@@ -114,17 +114,17 @@ SUBROUTINE downscale_ik4(in_array, scale_factor, out_array)
     END DO
 END SUBROUTINE downscale_ik4
 
-END MODULE auxiliaries_of_downscaling
+END MODULE auxiliaries_of_downsampling
 
 
 !--------------------------------------------------------------------
-!> Downscaling
+!> Downsampling
 !
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !> Date:    15.01.2022
 !> LastMod: 15.01.2022
 !--------------------------------------------------------------------
-PROGRAM downscaling
+PROGRAM downsampling
 
 USE ISO_FORTRAN_ENV
 USE global_std
@@ -132,7 +132,7 @@ USE user_interaction
 USE meta
 USE vtk_meta_data
 USE ser_binary
-USE auxiliaries_of_downscaling
+USE auxiliaries_of_downsampling
 USE user_interaction
 
 IMPLICIT NONE
@@ -171,7 +171,7 @@ CALL get_cmd_args(binary, in%full, restart, restart_cmd_arg)
 ! Define the new application name first
 !------------------------------------------------------------------------------
 global_meta_prgrm_mstr_app = 'dos' 
-global_meta_program_keyword = 'DOWNSCALING'
+global_meta_program_keyword = 'DOWNSAMPLING'
 CALL meta_append(m_rry, 1_mik, binary, stat)
 
 !------------------------------------------------------------------------------
@@ -273,9 +273,9 @@ SELECT CASE(type)
 END SELECT
 
 !------------------------------------------------------------------------------
-! Compute downscaling
+! Compute downsampling
 !------------------------------------------------------------------------------
-WRITE(std_out, FMT_TXT) 'Downscaling image.'
+WRITE(std_out, FMT_TXT) 'Downsampling image.'
     
 SELECT CASE(type)
     CASE('ik2'); CALL downscale(rry_ik2, scale_factor_ik, rry_out_ik2) 
@@ -320,4 +320,4 @@ WRITE(std_out, FMT_TXT_SEP)
 
 CALL meta_close(m_rry)
 
-END PROGRAM downscaling
+END PROGRAM downsampling

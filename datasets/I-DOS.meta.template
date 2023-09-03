@@ -1,5 +1,5 @@
 
-p DOWNSCALING
+p DOWNSAMPLING
 r SCALE_FACTOR          120  120  35                                   ! How many voxels are put together
 r ORIGIN_SHIFT_GLBL     0.0  0.0  0.0                                  ! (mm)
 r RESTART               Y                                              ! Restart a (partly) computed project
